@@ -4,14 +4,14 @@
     Did you know that you can also configure models directly within SQL files?
     This will override configurations stated in dbt_project.yml
 
-    Try changing "table" to "view" below
+    Try changing "table" to "view" below_details
 */
 
 {{ config(materialized='table') }}
 
 with source_data as (
 
-    select 1 as id
+    select 1 as identi
     union all
     select null as id
 
