@@ -7,18 +7,37 @@
     Try changing "table" to "view" below_details
 */
 
-{{ config(materialized='table') }}
-
-with source_data as (
-
-    select 1 as identi
-    union all
-    select null as id
-
+WITH customer_data AS (
+SELECT
+o.ORDER_ID,
+o.CUSTOMER_ID,
+o.ORDER_DATE,
+o.STATUS,
+c.FIRST_NAME,
+c.LAST_NAME,
+ROW_NUMBER() OVER (ORDER BY o.ORDER_DATE DESC) AS row_num
+FROM
+DQLABS_QA.CUSTOMERAI.stg_orders o
+JOIN
+DQLABS_QA.CUSTOMERAI.stg_customer c
+ON
+o.CUSTOMER_ID = c.CUSTOMER_ID
 )
 
-select *
-from source_data
+SELECT
+ORDER_ID,
+CUSTOMER_ID,
+ORDER_DATE,
+STATUS,
+FIRST_NAME,
+LAST_NAME
+FROM
+customer_data
+
+
+-- Incrementally load 5 new rows per run
+WHERE row_num > (SELECT COUNT(*) FROM DQLABS_QA.CUSTOMERAI.customerai_dbt_incr)
+AND row_num <= ((SELECT COUNT(*) FROM DQLABS_QA.CUSTOMERAI.customerai_dbt_incr) + 5)
 
 /*
     Uncomment the line below to remove records with null `id` values
