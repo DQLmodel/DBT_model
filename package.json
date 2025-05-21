@@ -1,0 +1,26 @@
+{
+  "name": "dbt_model-1",
+  "version": "1.0.0",
+  "description": "Welcome to your new dbt project!",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DQLmodel/DBT_model.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/DQLmodel/DBT_model/issues"
+  },
+  "homepage": "https://github.com/DQLmodel/DBT_model#readme",
+  "dependencies": {
+    "@actions/core": "^1.11.1"
+  }
+}
