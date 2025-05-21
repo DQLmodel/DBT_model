@@ -43,7 +43,7 @@ inputs:
 
   dqlabs_base_url:
     description: 'Base URL for DQ Labs'
-    required: false
+    required: true
 
 outputs:
   impact_markdown:
