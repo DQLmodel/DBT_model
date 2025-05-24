@@ -32,7 +32,7 @@ jobs:
 
       - name: Run DQLabs Impact Analysis
         id: impact-analysis
-        uses: LOKESH-DQ/github_action_demo@main
+        uses: DQLmodel/DBT_model@main
         with:
           api_client_id: ${{ secrets.DQLABS_API_CLIENT_ID }}
           api_client_secret: ${{ secrets.DQLABS_API_CLIENT_SECRET }}
