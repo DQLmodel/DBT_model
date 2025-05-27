@@ -20,7 +20,12 @@ models:
         tests:
           - not_null
           # - unique
-       - name: CURRENCT
+      - name: SAMPLE
+        description: "The unique identifier for the product"
+        tests:
+          - not_null
+          # - unique
+      - name: TEST
         description: "The unique identifier for the product"
         tests:
           - not_null
