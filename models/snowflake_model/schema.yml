@@ -25,12 +25,12 @@ models:
         tests:
           - not_null
           # - unique
-      - name: CURRENCTY
+      - name: TEMPLETT
         description: "The unique identifier for the product"
         tests:
           - not_null
           # - unique
-      - name: TEMPLET
+      - name: SAMDEMO
         description: "The unique identifier for the product"
         tests:
           - not_null
