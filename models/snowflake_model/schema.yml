@@ -20,7 +20,17 @@ models:
         tests:
           - not_null
           # - unique
-       - name: CURRENCT
+      - name: CURRENCT
+        description: "The unique identifier for the product"
+        tests:
+          - not_null
+          # - unique
+      - name: CURRENCTY
+        description: "The unique identifier for the product"
+        tests:
+          - not_null
+          # - unique
+      - name: TEMPLET
         description: "The unique identifier for the product"
         tests:
           - not_null
