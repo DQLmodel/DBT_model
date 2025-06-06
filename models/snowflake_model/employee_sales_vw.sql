@@ -10,9 +10,7 @@ WITH employee_sales_vw AS  (
     A.ITEM_GROSSAMOUNT,
     A.ITEM_NETAMOUNT,
     A.ITEM_TAXAMOUNT,
-    A.PRODUCTID 
-   
- 
+    A.PRODUCTID ,
     A.ITEM_NETAMOUNT,
     A.PRODUCTID 
     
