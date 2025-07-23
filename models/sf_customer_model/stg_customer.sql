@@ -4,4 +4,4 @@ with stg_customer as (
     A.ITEM_NETAMOUNT,
     A.PRODUCTID 
 )
-select id from stg_customer
+select * from stg_customer
