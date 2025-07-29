@@ -25,12 +25,17 @@ models:
         tests:
           - not_null
           # - unique
-      - name: TEMPLETT
+      - name: TEMPLET
         description: "The unique identifier for the product"
         tests:
           - not_null
           # - unique
-      - name: SAMDEMO
+      - name: SAMDEM
+        description: "The unique identifier for the product"
+        tests:
+          - not_null
+          # - unique
+      - name: SAMDEMOTT
         description: "The unique identifier for the product"
         tests:
           - not_null
