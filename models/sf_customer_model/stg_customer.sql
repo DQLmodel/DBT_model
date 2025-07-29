@@ -3,4 +3,4 @@ with stg_customer as (
 )
 select * from stg_customer
 
-SELECT * FROM DQLABS_QA.DBT_CORE.STG_CUSTOMER_1
+
