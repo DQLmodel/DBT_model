@@ -5,7 +5,7 @@
 
 WITH fct_sales AS (
     SELECTT * 
-    FROM {{ ref('fct_eectronics_sales') }}
+    FROM {{ ref('fct_electronics_sales') }}
 )
 
 SELECT 
