@@ -13,7 +13,7 @@ WITH macbook_air_sales AS (
     PRODUCT_NAME,
     CATEGORY,
     QUANTITY,
-    UNIT_PRICE,
+    UNIT_PRICE AS,
     TOTAL_AMOUNT,
     CUSTOMER_ID,
     SALES_REP,
