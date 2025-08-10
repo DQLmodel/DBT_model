@@ -10,7 +10,7 @@ WITH electronics_sales AS (
     RECORD_ID,
     "DATE" as SALE_DATE,  -- Renamed to avoid issues with reserved keyword
     STORE_ID,
-    PRODUCT_NAME,
+    PRODUCT_NAME AS PRODUCT_NAME,
     CATEGORY,
     QUANTITY,
     UNIT_PRICE,
