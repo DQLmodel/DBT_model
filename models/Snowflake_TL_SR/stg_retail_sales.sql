@@ -7,7 +7,7 @@
 
 WITH source_data AS (
   SELECT 
-    RECORD_ID,
+    RECORD_ID AS RECORD,
     "DATE",
     STORE_ID,
     PRODUCT_NAME,
