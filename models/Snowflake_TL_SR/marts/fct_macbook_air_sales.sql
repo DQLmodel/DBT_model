@@ -9,7 +9,7 @@ WITH macbook_air_sales AS (
   SELECT 
     RECORD_ID,
     "DATE",
-    STORE_ID,
+    STORE_ID AS STORE_ID,
     PRODUCT_NAME,
     CATEGORY,
     QUANTITY,
