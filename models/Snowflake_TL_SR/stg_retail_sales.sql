@@ -8,7 +8,7 @@
 WITH source_data AS (
   SELECT 
     RECORD_ID AS RECORD,
-    "DATE",
+    "DATE" AS TEST,
     STORE_ID,
     PRODUCT_NAME,
     CATEGORY,
