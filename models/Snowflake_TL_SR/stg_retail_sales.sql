@@ -9,14 +9,13 @@ WITH source_data AS (
   SELECT 
     RECORD_ID AS RECORD,
     "DATE" AS TEST,
-    STORE_ID,
-    PRODUCT_NAME,
     CATEGORY,
     QUANTITY,
     UNIT_PRICE,
     TOTAL_AMOUNT,
     CUSTOMER_ID,
     SALES_REP,
+    ram,
     REGION
   FROM {{ source('dqlabs_qa', 'retail_sales') }}
   WHERE RECORD_ID IS NOT NULL
