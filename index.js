@@ -167,6 +167,7 @@ const getColumnLevelImpactAnalysis = async (asset_id, connection_id, entity, cha
             column_id: field.id,
             data_type: field.data_type,
             table_id: table.id,
+            redirect_id: table.redirect_id,
             entity: table.entity,
             connection_id: table.connection_id,
             asset_name: table.asset_name,
@@ -431,10 +432,8 @@ const run = async () => {
         
         // For column-level items, we'll link to the table/entity page
         // since DQLabs doesn't seem to have direct column-level URLs
-        if (columnItem.entity) {
-          // Extract the model name from entity (e.g., "model.snowflake_project.customers" -> "customers")
-          const modelName = columnItem.entity.split('.').pop();
-          url.pathname = `/observe/pipeline/task/${columnItem.table_id}/run`;
+        if (columnItem.redirect_id) {
+          url.pathname = `/observe/pipeline/task/${columnItem.redirect_id}/run`;
         }
         
         return url.toString();
