@@ -623,8 +623,8 @@ ${content}
 
     // Process SQL changes
     const { added: sqlAdded, removed: sqlRemoved } = await processColumnChanges(".sql", extractColumnsFromSQL);
-    summary += `\n### SQL Column Changes\n`;
-    summary += `Added columns_1(${sqlAdded.length}): ${sqlAdded.join(', ')}\n`;
+    summary += `\n### SQL Column Changes_12345\n`;
+    summary += `Added columns(${sqlAdded.length}): ${sqlAdded.join(', ')}\n`;
     summary += `Removed columns(${sqlRemoved.length}): ${sqlRemoved.join(', ')}\n`;
 
     // Process YML changes
