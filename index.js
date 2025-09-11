@@ -127,10 +127,11 @@ const getColumnLevelImpactAnalysis = async (asset_id, connection_id, entity, cha
       connection_id,
       asset_id,
       entity,
+      field_offset: 0,
+      field_limit: 100, // Get more fields to analyze
       moreOptions: {
         view_by: "column",
         ...(!isDirect && { depth: 10 }), // Add depth only for indirect impact
-        changed_columns: changedColumns // Include the changed columns for analysis
       },
       search_key: ""
     };
@@ -147,7 +148,37 @@ const getColumnLevelImpactAnalysis = async (asset_id, connection_id, entity, cha
       }
     );
 
-    return safeArray(response?.data?.response?.data?.columns || []);
+    // Extract column-level information from the response
+    const tables = safeArray(response?.data?.response?.data?.tables || []);
+    const columnImpacts = [];
+
+    tables.forEach(table => {
+      const fields = safeArray(table.fields || []);
+      fields.forEach(field => {
+        // Check if this field/column is impacted by the changed columns
+        const isImpacted = changedColumns.some(changedCol => 
+          field.name && field.name.toLowerCase() === changedCol.toLowerCase()
+        );
+
+        if (isImpacted) {
+          columnImpacts.push({
+            table_name: table.name,
+            column_name: field.name,
+            column_id: field.id,
+            data_type: field.data_type,
+            table_id: table.id,
+            entity: table.entity,
+            connection_id: table.connection_id,
+            asset_name: table.asset_name,
+            flow: table.flow,
+            depth: table.depth,
+            impact_type: "Column Referenced"
+          });
+        }
+      });
+    });
+
+    return columnImpacts;
   } catch (error) {
     core.error(`[getColumnLevelImpactAnalysis] Error for ${entity}: ${error.message}`);
     return [];
@@ -391,6 +422,28 @@ const run = async () => {
       }
     };
 
+    // Function to construct URLs for column-level items
+    const constructColumnUrl = (columnItem, baseUrl) => {
+      if (!columnItem || !baseUrl) return "#";
+
+      try {
+        const url = new URL(baseUrl);
+        
+        // For column-level items, we'll link to the table/entity page
+        // since DQLabs doesn't seem to have direct column-level URLs
+        if (columnItem.entity) {
+          // Extract the model name from entity (e.g., "model.snowflake_project.customers" -> "customers")
+          const modelName = columnItem.entity.split('.').pop();
+          url.pathname = `/observe/pipeline/task/${columnItem.table_id}/run`;
+        }
+        
+        return url.toString();
+      } catch (error) {
+        core.error(`Error constructing column URL for ${columnItem.table_name}.${columnItem.column_name}: ${error.message}`);
+        return "#";
+      }
+    };
+
     // Build the complete impacts section with single collapse
     const buildImpactsSection = (fileImpacts) => {
       let content = '';
@@ -456,14 +509,14 @@ ${content}
         
         content += `#### Directly Impacted Columns (${direct.length})\n`;
         direct.forEach(column => {
-          const url = constructItemUrl(column, dqlabs_createlink_url);
-          content += `- [${column?.table_name || 'Unknown'}.${column?.column_name || 'Unknown'}](${url}) - *${column?.impact_type || 'Referenced'}*\n`;
+          const url = constructColumnUrl(column, dqlabs_createlink_url);
+          content += `- [${column?.table_name || 'Unknown'}.${column?.column_name || 'Unknown'}](${url}) - *${column?.impact_type || 'Referenced'}* (${column?.data_type || 'Unknown Type'})\n`;
         });
 
         content += `\n#### Indirectly Impacted Columns (${indirect.length})\n`;
         indirect.forEach(column => {
-          const url = constructItemUrl(column, dqlabs_createlink_url);
-          content += `- [${column?.table_name || 'Unknown'}.${column?.column_name || 'Unknown'}](${url}) - *${column?.impact_type || 'Referenced'}*\n`;
+          const url = constructColumnUrl(column, dqlabs_createlink_url);
+          content += `- [${column?.table_name || 'Unknown'}.${column?.column_name || 'Unknown'}](${url}) - *${column?.impact_type || 'Referenced'}* (${column?.data_type || 'Unknown Type'})\n`;
         });
 
         content += '\n\n';
