@@ -3,4 +3,4 @@ SELECT FP.property_id,FP.rental_income,FP.purchase_price,FP.sale_price,FP.profit
 FROM {{ ref('financial_performance') }} FP
 JOIN {{ ref('property_information') }} PI on FP.property_id = PI.property_id
 )
-select * from consolidated_vw
+select id from consolidated_vw
