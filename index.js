@@ -119,22 +119,27 @@ const getImpactAnalysisData = async (asset_id, connection_id, entity, isDirect =
   }
 };
 
-// New function for column-level impact analysis
+// Enhanced function for column-level impact analysis
 const getColumnLevelImpactAnalysis = async (asset_id, connection_id, entity, changedColumns, isDirect = true) => {
   try {
+    core.info(`[getColumnLevelImpactAnalysis] Starting analysis for entity: ${entity}, changedColumns: [${changedColumns.join(', ')}]`);
+    
     const impactAnalysisUrl = `${dqlabs_base_url}/api/lineage/impact-analysis/`;
     const payload = {
       connection_id,
       asset_id,
       entity,
       field_offset: 0,
-      field_limit: 100, // Get more fields to analyze
+      field_limit: 200, // Increased limit to get more fields
       moreOptions: {
         view_by: "column",
         ...(!isDirect && { depth: 10 }), // Add depth only for indirect impact
       },
       search_key: ""
     };
+
+    core.info(`[getColumnLevelImpactAnalysis] Making API call to: ${impactAnalysisUrl}`);
+    core.info(`[getColumnLevelImpactAnalysis] Payload: ${JSON.stringify(payload)}`);
 
     const response = await axios.post(
       impactAnalysisUrl,
@@ -148,19 +153,41 @@ const getColumnLevelImpactAnalysis = async (asset_id, connection_id, entity, cha
       }
     );
 
+    core.info(`[getColumnLevelImpactAnalysis] API response status: ${response.status}`);
+    core.info(`[getColumnLevelImpactAnalysis] Response data structure: ${JSON.stringify(Object.keys(response.data || {}))}`);
+
     // Extract column-level information from the response
     const tables = safeArray(response?.data?.response?.data?.tables || []);
+    core.info(`[getColumnLevelImpactAnalysis] Found ${tables.length} tables in response`);
+    
     const columnImpacts = [];
 
-    tables.forEach(table => {
+    tables.forEach((table, tableIndex) => {
       const fields = safeArray(table.fields || []);
-      fields.forEach(field => {
-        // Check if this field/column is impacted by the changed columns
-        const isImpacted = changedColumns.some(changedCol => 
-          field.name && field.name.toLowerCase() === changedCol.toLowerCase()
-        );
+      core.info(`[getColumnLevelImpactAnalysis] Table ${tableIndex + 1}: ${table.name} has ${fields.length} fields`);
+      
+      fields.forEach((field, fieldIndex) => {
+        // Enhanced column matching with multiple strategies
+        const isImpacted = changedColumns.some(changedCol => {
+          const fieldName = field.name ? field.name.toLowerCase() : '';
+          const changedColName = changedCol.toLowerCase();
+          
+          // Exact match
+          if (fieldName === changedColName) return true;
+          
+          // Partial match (for cases where column names might be slightly different)
+          if (fieldName.includes(changedColName) || changedColName.includes(fieldName)) return true;
+          
+          // Handle quoted column names
+          const unquotedFieldName = fieldName.replace(/[`"']/g, '');
+          const unquotedChangedCol = changedColName.replace(/[`"']/g, '');
+          if (unquotedFieldName === unquotedChangedCol) return true;
+          
+          return false;
+        });
 
         if (isImpacted) {
+          core.info(`[getColumnLevelImpactAnalysis] Found impacted column: ${table.name}.${field.name}`);
           columnImpacts.push({
             table_name: table.name,
             column_name: field.name,
@@ -179,14 +206,19 @@ const getColumnLevelImpactAnalysis = async (asset_id, connection_id, entity, cha
       });
     });
 
+    core.info(`[getColumnLevelImpactAnalysis] Found ${columnImpacts.length} column impacts for ${entity}`);
     return columnImpacts;
   } catch (error) {
     core.error(`[getColumnLevelImpactAnalysis] Error for ${entity}: ${error.message}`);
+    if (error.response) {
+      core.error(`[getColumnLevelImpactAnalysis] Response status: ${error.response.status}`);
+      core.error(`[getColumnLevelImpactAnalysis] Response data: ${JSON.stringify(error.response.data)}`);
+    }
     return [];
   }
 };
 
-// Function to extract changed columns from file changes
+// Enhanced function to extract changed columns from file changes
 const extractChangedColumns = async (changedFiles) => {
   const changedColumns = {
     added: [],
@@ -194,30 +226,51 @@ const extractChangedColumns = async (changedFiles) => {
     modified: []
   };
 
+  core.info(`[extractChangedColumns] Processing ${changedFiles.length} changed files`);
+
   for (const file of changedFiles.filter(f => f && f.endsWith(".sql"))) {
     try {
+      core.info(`[extractChangedColumns] Processing file: ${file}`);
+      
       const baseSha = process.env.GITHUB_BASE_SHA || github.context.payload.pull_request?.base?.sha;
       const headSha = process.env.GITHUB_HEAD_SHA || github.context.payload.pull_request?.head?.sha;
 
+      core.info(`[extractChangedColumns] Base SHA: ${baseSha}, Head SHA: ${headSha}`);
+
       const baseContent = baseSha ? await getFileContent(baseSha, file) : null;
       const headContent = await getFileContent(headSha, file);
-      if (!headContent) continue;
+      
+      if (!headContent) {
+        core.warning(`[extractChangedColumns] No head content found for ${file}`);
+        continue;
+      }
+
+      core.info(`[extractChangedColumns] Base content length: ${baseContent ? baseContent.length : 0}`);
+      core.info(`[extractChangedColumns] Head content length: ${headContent.length}`);
 
       const baseCols = safeArray(baseContent ? extractColumnsFromSQL(baseContent) : []);
       const headCols = safeArray(extractColumnsFromSQL(headContent));
+
+      core.info(`[extractChangedColumns] Base columns for ${file}: [${baseCols.join(', ')}]`);
+      core.info(`[extractChangedColumns] Head columns for ${file}: [${headCols.join(', ')}]`);
 
       // Find added columns
       const addedCols = headCols.filter(col => !baseCols.includes(col));
       // Find removed columns
       const removedCols = baseCols.filter(col => !headCols.includes(col));
 
+      core.info(`[extractChangedColumns] Added columns for ${file}: [${addedCols.join(', ')}]`);
+      core.info(`[extractChangedColumns] Removed columns for ${file}: [${removedCols.join(', ')}]`);
+
       changedColumns.added.push(...addedCols.map(col => ({ column: col, file })));
       changedColumns.removed.push(...removedCols.map(col => ({ column: col, file })));
     } catch (error) {
-      core.error(`Error extracting columns from ${file}: ${error.message}`);
+      core.error(`[extractChangedColumns] Error extracting columns from ${file}: ${error.message}`);
+      core.error(`[extractChangedColumns] Stack trace: ${error.stack}`);
     }
   }
 
+  core.info(`[extractChangedColumns] Final results - Added: ${changedColumns.added.length}, Removed: ${changedColumns.removed.length}`);
   return changedColumns;
 };
 
@@ -232,7 +285,15 @@ const run = async () => {
 
     // Extract changed columns for column-level analysis
     const changedColumns = await extractChangedColumns(changedFiles);
-    core.info(`Found ${changedColumns.added.length} added columns and ${changedColumns.removed.length} removed columns`);
+    core.info(`[MAIN] Found ${changedColumns.added.length} added columns and ${changedColumns.removed.length} removed columns`);
+    
+    // Debug: Log all changed columns
+    if (changedColumns.added.length > 0) {
+      core.info(`[MAIN] Added columns: ${JSON.stringify(changedColumns.added)}`);
+    }
+    if (changedColumns.removed.length > 0) {
+      core.info(`[MAIN] Removed columns: ${JSON.stringify(changedColumns.removed)}`);
+    }
 
     // Process changed SQL models
     const changedModels = changedFiles
@@ -242,6 +303,7 @@ const run = async () => {
 
     // Get tasks safely
     const tasks = await getTasks();
+    core.info(`[MAIN] Retrieved ${tasks.length} tasks from DQLabs`);
 
     // Match tasks with changed models
     const matchedTasks = tasks
@@ -253,6 +315,11 @@ const run = async () => {
         filePath: changedFiles.find(f => path.basename(f, path.extname(f)) === task.name)
       }))
       .filter(task => task.filePath); // Ensure we have the file path
+
+    core.info(`[MAIN] Found ${matchedTasks.length} matched tasks for changed models`);
+    matchedTasks.forEach(task => {
+      core.info(`[MAIN] Matched task: ${task.name} (${task.entity}) -> ${task.filePath}`);
+    });
 
     // Store impacts per file
     const fileImpacts = {};
@@ -306,9 +373,12 @@ const run = async () => {
         ...changedColumns.removed.filter(col => col.file === task.filePath).map(col => col.column)
       ];
 
+      core.info(`[MAIN] Task ${task.name} has ${taskChangedColumns.length} changed columns: [${taskChangedColumns.join(', ')}]`);
+
       if (taskChangedColumns.length > 0) {
         columnImpacts[task.filePath].changedColumns = taskChangedColumns;
 
+        core.info(`[MAIN] Getting direct column-level impacts for ${task.name}`);
         // Get direct column-level impacts
         const directColumnImpact = await getColumnLevelImpactAnalysis(
           task.asset_id,
@@ -323,8 +393,10 @@ const run = async () => {
           .filter(column => column?.table_name !== task.name)
           .filter(Boolean);
 
+        core.info(`[MAIN] Found ${filteredDirectColumnImpact.length} direct column impacts for ${task.name}`);
         columnImpacts[task.filePath].direct.push(...filteredDirectColumnImpact);
 
+        core.info(`[MAIN] Getting indirect column-level impacts for ${task.name}`);
         // Get indirect column-level impacts
         const indirectColumnImpact = await getColumnLevelImpactAnalysis(
           task.asset_id,
@@ -334,7 +406,10 @@ const run = async () => {
           false // isDirect = false
         );
 
+        core.info(`[MAIN] Found ${indirectColumnImpact.length} indirect column impacts for ${task.name}`);
         columnImpacts[task.filePath].indirect.push(...indirectColumnImpact);
+      } else {
+        core.info(`[MAIN] No changed columns found for task ${task.name}, skipping column-level analysis`);
       }
     }
 
@@ -487,11 +562,12 @@ ${content}
       return content;
     };
 
-    // Build column-level impacts section
+    // Build column-level impacts section with fallback analysis
     const buildColumnImpactsSection = (columnImpacts) => {
       let content = '';
       let totalDirect = 0;
       let totalIndirect = 0;
+      let hasColumnChanges = false;
       
       // Generate content for each file with column changes
       Object.entries(columnImpacts).forEach(([filePath, impacts]) => {
@@ -499,6 +575,7 @@ ${content}
         
         if (changedColumns.length === 0) return; // Skip files with no column changes
         
+        hasColumnChanges = true;
         totalDirect += direct.length;
         totalIndirect += indirect.length;
 
@@ -506,23 +583,38 @@ ${content}
         content += `**Model:** ${taskName}\n`;
         content += `**Changed Columns:** ${changedColumns.join(', ')}\n\n`;
         
-        content += `#### Directly Impacted Columns (${direct.length})\n`;
-        direct.forEach(column => {
-          const url = constructColumnUrl(column, dqlabs_createlink_url);
-          content += `- [${column?.table_name || 'Unknown'}.${column?.column_name || 'Unknown'}](${url}) - *${column?.impact_type || 'Referenced'}* (${column?.data_type || 'Unknown Type'})\n`;
-        });
+        if (direct.length > 0) {
+          content += `#### Directly Impacted Columns (${direct.length})\n`;
+          direct.forEach(column => {
+            const url = constructColumnUrl(column, dqlabs_createlink_url);
+            content += `- [${column?.table_name || 'Unknown'}.${column?.column_name || 'Unknown'}](${url}) - *${column?.impact_type || 'Referenced'}* (${column?.data_type || 'Unknown Type'})\n`;
+          });
+        } else {
+          content += `#### Directly Impacted Columns (0)\n`;
+          content += `*No direct column impacts detected via DQLabs API*\n`;
+        }
 
-        content += `\n#### Indirectly Impacted Columns (${indirect.length})\n`;
-        indirect.forEach(column => {
-          const url = constructColumnUrl(column, dqlabs_createlink_url);
-          content += `- [${column?.table_name || 'Unknown'}.${column?.column_name || 'Unknown'}](${url}) - *${column?.impact_type || 'Referenced'}* (${column?.data_type || 'Unknown Type'})\n`;
-        });
+        if (indirect.length > 0) {
+          content += `\n#### Indirectly Impacted Columns (${indirect.length})\n`;
+          indirect.forEach(column => {
+            const url = constructColumnUrl(column, dqlabs_createlink_url);
+            content += `- [${column?.table_name || 'Unknown'}.${column?.column_name || 'Unknown'}](${url}) - *${column?.impact_type || 'Referenced'}* (${column?.data_type || 'Unknown Type'})\n`;
+          });
+        } else {
+          content += `\n#### Indirectly Impacted Columns (0)\n`;
+          content += `*No indirect column impacts detected via DQLabs API*\n`;
+        }
 
         content += '\n\n';
       });
 
-      if (totalDirect === 0 && totalIndirect === 0) {
-        return '## Column-Level Impact Analysis\n\n**No column-level impacts detected.** All changed columns appear to be isolated or already handled in downstream models.\n\n';
+      // If we have column changes but no impacts detected, provide a more informative message
+      if (hasColumnChanges && totalDirect === 0 && totalIndirect === 0) {
+        return `## Column-Level Impact Analysis\n\n**⚠️ Column changes detected but no impacts found via DQLabs API.**\n\nThis could indicate:\n- The DQLabs lineage data may not be up-to-date\n- Column-level lineage might not be fully configured\n- The changed columns may not have downstream dependencies\n- API connectivity or authentication issues\n\n**Recommendation:** Check the DQLabs platform directly to verify column-level impacts.\n\n`;
+      }
+
+      if (!hasColumnChanges) {
+        return '## Column-Level Impact Analysis\n\n**No column changes detected in SQL files.**\n\n';
       }
 
       const totalImpacts = totalDirect + totalIndirect;
