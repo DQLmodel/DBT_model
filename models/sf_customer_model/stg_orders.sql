@@ -1,6 +1,6 @@
 with stg_orders as (
-    SELECT * FROM DQLABS_QA.DBT_CORE.STG_ORDERS
+    SELECT name FROM DQLABS_QA.DBT_CORE.STG_ORDERS
 )
 
-select name from stg_orders AS main
+select * from stg_orders AS main
 
