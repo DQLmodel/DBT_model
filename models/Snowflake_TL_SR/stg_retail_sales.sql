@@ -53,7 +53,7 @@ deduplicated_data AS (
 )
 
 SELECT 
-  RECORD_ID,
+  CUSTOMER_ID,
   "DATE",
   STORE_ID,
   PRODUCT_NAME,
