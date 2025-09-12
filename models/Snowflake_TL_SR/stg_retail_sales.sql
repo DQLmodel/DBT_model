@@ -64,4 +64,4 @@ SELECT
   SALES_REP,
   REGION
 FROM deduplicated_data
-WHERE rn = 1  as
+WHERE rn = 1  
