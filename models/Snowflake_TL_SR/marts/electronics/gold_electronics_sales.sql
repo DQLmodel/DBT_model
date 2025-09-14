@@ -9,7 +9,6 @@ WITH fct_sales AS (
 )
 
 SELECT 
-    RECORD_IDD,
     SALE_DATE,
     STORE_ID,
     STORE_ID,
