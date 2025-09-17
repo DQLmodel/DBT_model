@@ -58,8 +58,6 @@ SELECT
   PRODUCT_NAME,
   CATEGORY,
   QUANTITY,
-  UNIT_PRICE,
-  TOTAL_AMOUNT,
 
 FROM deduplicated_data
 WHERE rn = 1  
