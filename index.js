@@ -17,7 +17,9 @@ const clientId = core.getInput("api_client_id") || "";
 const clientSecret = core.getInput("api_client_secret") || "";
 const changedFilesList = core.getInput("changed_files_list") || "";
 const githubToken = core.getInput("GITHUB_TOKEN") || "";
+console.log("Github token", githubToken);
 const dqlabs_base_url = core.getInput("dqlabs_base_url") || "";
+console.log("base url", dqlabs_base_url);
 const dqlabs_createlink_url = core.getInput("dqlabs_createlink_url") || "";
 
 // Safe array processing utility
@@ -59,6 +61,7 @@ const getChangedFiles = async () => {
 const getTasks = async () => {
   try {
     const taskUrl = `${dqlabs_base_url}/api/pipeline/task/`;
+    console.log("task url", taskUrl);
     const payload = {
       chartType: 0,
       search: {},
