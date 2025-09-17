@@ -13,7 +13,6 @@ SELECT
     SALE_DATE,
     STORE_ID,
     STORE_ID,
-    PRODUCT_NAME,
     SALE_YEAR,
     CURRENT_TIMESTAMP() AS LOADED_AT,
     '{{ invocation_id }}' AS DBT_RUN_ID
