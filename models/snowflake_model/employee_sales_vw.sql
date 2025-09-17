@@ -14,4 +14,4 @@ INNER JOIN
     DQLABS_QA.STAGING.SALES_EMP B
     ON A.SALESORDERID = B.SALESORDERID
 )
-SELECT * FROM employee_sales_vw
+SELECT id FROM employee_sales_vw
