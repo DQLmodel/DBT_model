@@ -58,7 +58,6 @@ SELECT
   QUANTITY,
   TOTAL_AMOUNT, 
   TOTAL_AMOUNT,
-  CUSTOMER_ID,
   REGION
 FROM deduplicated_data
 WHERE rn = 1 
