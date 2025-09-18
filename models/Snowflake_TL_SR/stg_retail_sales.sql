@@ -52,8 +52,7 @@ deduplicated_data AS (
   FROM source_data
 )
 
-SELECT 
-  RECORD_ID,
+SELECT
   "DATE",
   CATEGORY,
   QUANTITY,
