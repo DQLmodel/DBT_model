@@ -52,12 +52,16 @@ deduplicated_data AS (
 )
 
 SELECT 
-  RECORD_ID,
-  "DATE",
-  STORE_ID,
-  PRODUCT_NAME,
-  CATEGORY,
-  QUANTITY,
-
+   RECORD_ID,
+    "DATE",
+    STORE_ID,
+    PRODUCT_NAME,
+    CATEGORY,
+    QUANTITY,
+    UNIT_PRICE,
+    TOTAL_AMOUNT,
+    CUSTOMER_ID,
+    SALES_REP,
+    REGION,
 FROM deduplicated_data
 WHERE rn = 1  
