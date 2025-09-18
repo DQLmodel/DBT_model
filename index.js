@@ -474,11 +474,6 @@ const run = async () => {
       try {
         const url = new URL(baseUrl);
 
-        // Check if we have connection_id for valid link
-        if (!item.connection_id || !item.redirect_id) {
-          return "#";
-        }
-
         // Handle pipeline items
         if (item.asset_group === "pipeline") {
           if (item.is_transform) {
@@ -503,42 +498,20 @@ const run = async () => {
       }
     };
 
-    // Function to construct URLs for column-level items (using same logic as model-level)
+    // Function to construct URLs for column-level items
     const constructColumnUrl = (columnItem, baseUrl) => {
       if (!columnItem || !baseUrl) return "#";
 
       try {
         const url = new URL(baseUrl);
-
-        // Use the same logic as model-level links
-        // Handle pipeline items
-        if (columnItem.asset_group === "pipeline") {
-          if (columnItem.is_transform) {
-            url.pathname = `/observe/pipeline/transformation/${columnItem.redirect_id}/run`;
-          } else {
-            url.pathname = `/observe/pipeline/task/${columnItem.redirect_id}/run`;
-          }
-          return url.toString();
-        }
-
-        // Handle data items
-        if (columnItem.asset_group === "data") {
-          url.pathname = `/observe/data/${columnItem.redirect_id}/measures`;
-          return url.toString();
-        }
-
-        // Fallback: if no connection_id or redirect_id, return non-clickable
-        if (!columnItem.connection_id || !columnItem.redirect_id) {
-          return "#";
-        }
-
-        // Default case for column items
+        
+        // For column-level items, we'll link to the table/entity page
+        // since DQLabs doesn't seem to have direct column-level URLs
         if (columnItem.redirect_id) {
           url.pathname = `/observe/pipeline/task/${columnItem.redirect_id}/run`;
-          return url.toString();
         }
         
-        return "#";
+        return url.toString();
       } catch (error) {
         core.error(`Error constructing column URL for ${columnItem.table_name}.${columnItem.column_name}: ${error.message}`);
         return "#";
@@ -563,27 +536,13 @@ const run = async () => {
         content += `#### Directly Impacted (${direct.length})\n`;
         direct.forEach(model => {
           const url = constructItemUrl(model, dqlabs_createlink_url);
-          const modelName = model?.name || 'Unknown';
-          
-          // Check if we have connection_id for clickable link
-          if (model?.connection_id && url !== "#") {
-            content += `- [${modelName}](${url})\n`;
-          } else {
-            content += `- ${modelName}\n`;
-          }
+          content += `- [${model?.name || 'Unknown'}](${url})\n`;
         });
 
         content += `\n#### Indirectly Impacted (${indirect.length})\n`;
         indirect.forEach(model => {
           const url = constructItemUrl(model, dqlabs_createlink_url);
-          const modelName = model?.name || 'Unknown';
-          
-          // Check if we have connection_id for clickable link
-          if (model?.connection_id && url !== "#") {
-            content += `- [${modelName}](${url})\n`;
-          } else {
-            content += `- ${modelName}\n`;
-          }
+          content += `- [${model?.name || 'Unknown'}](${url})\n`;
         });
 
         content += '\n\n';
@@ -628,14 +587,7 @@ ${content}
           content += `#### Directly Impacted Columns (${direct.length})\n`;
           direct.forEach(column => {
             const url = constructColumnUrl(column, dqlabs_createlink_url);
-            const columnName = `${column?.table_name || 'Unknown'}.${column?.column_name || 'Unknown'}`;
-            
-            // Check if we have connection_id for clickable link
-            if (column?.connection_id && url !== "#") {
-              content += `- [${columnName}](${url}) - *${column?.impact_type || 'Referenced'}* (${column?.data_type || 'Unknown Type'})\n`;
-            } else {
-              content += `- ${columnName} - *${column?.impact_type || 'Referenced'}* (${column?.data_type || 'Unknown Type'})\n`;
-            }
+            content += `- [${column?.table_name || 'Unknown'}.${column?.column_name || 'Unknown'}](${url}) - *${column?.impact_type || 'Referenced'}* (${column?.data_type || 'Unknown Type'})\n`;
           });
         } else {
           content += `#### Directly Impacted Columns (0)\n`;
@@ -646,14 +598,7 @@ ${content}
           content += `\n#### Indirectly Impacted Columns (${indirect.length})\n`;
           indirect.forEach(column => {
             const url = constructColumnUrl(column, dqlabs_createlink_url);
-            const columnName = `${column?.table_name || 'Unknown'}.${column?.column_name || 'Unknown'}`;
-            
-            // Check if we have connection_id for clickable link
-            if (column?.connection_id && url !== "#") {
-              content += `- [${columnName}](${url}) - *${column?.impact_type || 'Referenced'}* (${column?.data_type || 'Unknown Type'})\n`;
-            } else {
-              content += `- ${columnName} - *${column?.impact_type || 'Referenced'}* (${column?.data_type || 'Unknown Type'})\n`;
-            }
+            content += `- [${column?.table_name || 'Unknown'}.${column?.column_name || 'Unknown'}](${url}) - *${column?.impact_type || 'Referenced'}* (${column?.data_type || 'Unknown Type'})\n`;
           });
         } else {
           content += `\n#### Indirectly Impacted Columns (0)\n`;
