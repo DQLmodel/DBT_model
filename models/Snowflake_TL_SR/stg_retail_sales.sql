@@ -54,7 +54,6 @@ deduplicated_data AS (
 
 SELECT 
   "DATE",
-  PRODUCT_NAME,
   CATEGORY,
   QUANTITY,
   TOTAL_AMOUNT, 
