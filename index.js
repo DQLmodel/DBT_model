@@ -200,7 +200,8 @@ const getColumnLevelImpactAnalysis = async (asset_id, connection_id, entity, cha
             asset_name: table.asset_name,
             flow: table.flow,
             depth: table.depth,
-            impact_type: "Column Referenced"
+            impact_type: "Column Referenced",
+            asset_group: table.asset_group
           });
         }
       });
