@@ -490,6 +490,12 @@ const run = async () => {
           return url.toString();
         }
 
+        // Handle report items
+        if (item.asset_group === "report") {
+          url.pathname = `/observe/report/worksheet/${item.redirect_id}/overview`;
+          return url.toString();
+        }
+
         // Handle data items
         if (item.asset_group === "data") {
           url.pathname = `/observe/data/${item.redirect_id}/measures`;
