@@ -32,7 +32,7 @@ jobs:
 
       - name: Run DQLabs Impact Analysis
         id: impact-analysis
-        uses: DQLmodel/DBT_model@testing
+        uses: DQLmodel/DBT_model@3847
         with:
           api_client_id: ${{ secrets.DQLABS_API_CLIENT_ID }}
           api_client_secret: ${{ secrets.DQLABS_API_CLIENT_SECRET }}
@@ -40,6 +40,8 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           dqlabs_base_url: ${{ secrets.DQLABS_BASE_URL }}
           dqlabs_createlink_url: ${{ secrets.DQLABS_CREATELINK_URL }}
+          dqlabs_configurable_keys: "indirectly_impacted_asset_count, directly_impacted_asset_list, indirectly_impacted_asset_list, directly_impacted_column_count"
+
 
       - name: Show Summary in Logs
         run: echo "${{ steps.impact-analysis.outputs.impact_markdown }}"
