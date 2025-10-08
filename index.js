@@ -734,23 +734,7 @@ const run = async () => {
     };
 
 
-    // Process SQL and YML column changes first
-    const { added: sqlAdded, removed: sqlRemoved } = await processColumnChanges(".sql", extractColumnsFromSQL);
-    const { added: ymlAdded, removed: ymlRemoved } = await processColumnChanges(".yml", (content, file) => extractColumnsFromYML(content, file), true);
-    
-    // Build the new simplified report
-    summary = buildNewAnalysisReport(fileImpacts, columnImpacts, changedFiles);
-    
-    // Add SQL and YML Column Changes sections (always show)
-    summary += "### SQL Column Changes\n";
-    summary += `Added columns(${sqlAdded.length}): ${sqlAdded.join(', ')}\n`;
-    summary += `Removed columns(${sqlRemoved.length}): ${sqlRemoved.join(', ')}\n\n`;
-    
-    summary += "### YML Column Changes\n";
-    summary += `Added columns(${ymlAdded.length}): ${ymlAdded.map(c => c.name).join(', ')}\n`;
-    summary += `Removed columns(${ymlRemoved.length}): ${ymlRemoved.map(c => c.name).join(', ')}\n\n`;
-
-    // Process column changes
+    // Process column changes function
     const processColumnChanges = async (extension, extractor, isYml = false) => {
       const changes = [];
       let added = [];
@@ -807,6 +791,22 @@ const run = async () => {
 
       return { changes, added, removed };
     };
+
+    // Process SQL and YML column changes first
+    const { added: sqlAdded, removed: sqlRemoved } = await processColumnChanges(".sql", extractColumnsFromSQL);
+    const { added: ymlAdded, removed: ymlRemoved } = await processColumnChanges(".yml", (content, file) => extractColumnsFromYML(content, file), true);
+    
+    // Build the new simplified report
+    summary = buildNewAnalysisReport(fileImpacts, columnImpacts, changedFiles);
+    
+    // Add SQL and YML Column Changes sections (always show)
+    summary += "### SQL Column Changes\n";
+    summary += `Added columns(${sqlAdded.length}): ${sqlAdded.join(', ')}\n`;
+    summary += `Removed columns(${sqlRemoved.length}): ${sqlRemoved.join(', ')}\n\n`;
+    
+    summary += "### YML Column Changes\n";
+    summary += `Added columns(${ymlAdded.length}): ${ymlAdded.map(c => c.name).join(', ')}\n`;
+    summary += `Removed columns(${ymlRemoved.length}): ${ymlRemoved.map(c => c.name).join(', ')}\n\n`;
 
 
     // Post comment
