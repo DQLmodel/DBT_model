@@ -809,18 +809,50 @@ const run = async () => {
     summary += `Removed columns(${ymlRemoved.length}): ${ymlRemoved.map(c => c.name).join(', ')}\n\n`;
 
 
-    // Post comment
+    // Post or update comment
     if (github.context.payload.pull_request) {
       try {
         const octokit = github.getOctokit(githubToken);
-        await octokit.rest.issues.createComment({
-          owner: github.context.repo.owner,
-          repo: github.context.repo.repo,
-          issue_number: github.context.payload.pull_request.number,
-          body: summary,
+        const { owner, repo } = github.context.repo;
+        const issue_number = github.context.payload.pull_request.number;
+        
+        // Get existing comments to find our bot's comment
+        const comments = await octokit.rest.issues.listComments({
+          owner,
+          repo,
+          issue_number,
         });
+        
+        // Find existing comment from github-actions[bot] with our impact analysis
+        const existingComment = comments.data.find(comment => 
+          comment.user.type === 'Bot' && 
+          comment.user.login === 'github-actions[bot]' &&
+          comment.body.includes('## Impact Analysis Report')
+        );
+        
+        if (existingComment) {
+          // Update existing comment
+          core.info(`Updating existing comment ${existingComment.id}`);
+          await octokit.rest.issues.updateComment({
+            owner,
+            repo,
+            comment_id: existingComment.id,
+            body: summary,
+          });
+          core.info('Successfully updated existing impact analysis comment');
+        } else {
+          // Create new comment
+          core.info('Creating new impact analysis comment');
+          await octokit.rest.issues.createComment({
+            owner,
+            repo,
+            issue_number,
+            body: summary,
+          });
+          core.info('Successfully created new impact analysis comment');
+        }
       } catch (error) {
-        core.error(`Failed to create comment: ${error.message}`);
+        core.error(`Failed to post/update comment: ${error.message}`);
       }
     }
 
