@@ -28,28 +28,28 @@ const safeArray = (maybeArray) => Array.isArray(maybeArray) ? maybeArray : [];
 const parseConfigurableKeys = (keysString) => {
   if (!keysString || typeof keysString !== 'string') {
     return {
-      showDirectlyImpactedColumnCount: true,
-      showIndirectlyImpactedColumnCount: true,
-      showDirectlyImpactedAssetCount: true,
-      showIndirectlyImpactedAssetCount: true,
-      showDirectlyImpactedColumnList: true,
-      showIndirectlyImpactedColumnList: true,
-      showDirectlyImpactedAssetList: true,
-      showIndirectlyImpactedAssetList: true
+      showDirectColumnCount: true,
+      showIndirectColumnCount: true,
+      showDirectAssetCount: true,
+      showIndirectAssetCount: true,
+      showDirectColumnList: true,
+      showIndirectColumnList: true,
+      showDirectAssetList: true,
+      showIndirectAssetList: true
     };
   }
 
   const keys = keysString.split(',').map(key => key.trim().toLowerCase());
   
   return {
-    showDirectlyImpactedColumnCount: keys.includes('directly_impacted_column_count'),
-    showIndirectlyImpactedColumnCount: keys.includes('indirectly_impacted_column_count'),
-    showDirectlyImpactedAssetCount: keys.includes('directly_impacted_asset_count'),
-    showIndirectlyImpactedAssetCount: keys.includes('indirectly_impacted_asset_count'),
-    showDirectlyImpactedColumnList: keys.includes('directly_impacted_column_list'),
-    showIndirectlyImpactedColumnList: keys.includes('indirectly_impacted_column_list'),
-    showDirectlyImpactedAssetList: keys.includes('directly_impacted_asset_list'),
-    showIndirectlyImpactedAssetList: keys.includes('indirectly_impacted_asset_list')
+    showDirectColumnCount: keys.includes('direct_column_count'),
+    showIndirectColumnCount: keys.includes('indirect_column_count'),
+    showDirectAssetCount: keys.includes('direct_asset_count'),
+    showIndirectAssetCount: keys.includes('indirect_asset_count'),
+    showDirectColumnList: keys.includes('direct_column_list'),
+    showIndirectColumnList: keys.includes('indirect_column_list'),
+    showDirectAssetList: keys.includes('direct_asset_list'),
+    showIndirectAssetList: keys.includes('indirect_asset_list')
   };
 };
 
@@ -601,11 +601,11 @@ const run = async () => {
         content += `**Model:** ${taskName}\n\n`;
         
         // Show directly impacted assets only if requested
-        if (configurableKeys.showDirectlyImpactedAssetList || configurableKeys.showDirectlyImpactedAssetCount) {
-          const directCount = configurableKeys.showDirectlyImpactedAssetCount ? ` (${direct.length})` : '';
+        if (configurableKeys.showDirectAssetList || configurableKeys.showDirectAssetCount) {
+          const directCount = configurableKeys.showDirectAssetCount ? ` (${direct.length})` : '';
           content += `#### Directly Impacted${directCount}\n`;
           
-          if (configurableKeys.showDirectlyImpactedAssetList) {
+          if (configurableKeys.showDirectAssetList) {
             direct.forEach(model => {
               const url = constructItemUrl(model, dqlabs_createlink_url);
               const modelName = model?.name || 'Unknown';
@@ -623,11 +623,11 @@ const run = async () => {
         }
 
         // Show indirectly impacted assets only if requested
-        if (configurableKeys.showIndirectlyImpactedAssetList || configurableKeys.showIndirectlyImpactedAssetCount) {
-          const indirectCount = configurableKeys.showIndirectlyImpactedAssetCount ? ` (${indirect.length})` : '';
+        if (configurableKeys.showIndirectAssetList || configurableKeys.showIndirectAssetCount) {
+          const indirectCount = configurableKeys.showIndirectAssetCount ? ` (${indirect.length})` : '';
           content += `\n#### Indirectly Impacted${indirectCount}\n`;
           
-          if (configurableKeys.showIndirectlyImpactedAssetList) {
+          if (configurableKeys.showIndirectAssetList) {
             indirect.forEach(model => {
               const url = constructItemUrl(model, dqlabs_createlink_url);
               const modelName = model?.name || 'Unknown';
@@ -683,11 +683,11 @@ ${content}
         content += `**Changed Columns:** ${changedColumns.join(', ')}\n\n`;
         
         // Show directly impacted columns only if requested
-        if (configurableKeys.showDirectlyImpactedColumnList || configurableKeys.showDirectlyImpactedColumnCount) {
-          const directCount = configurableKeys.showDirectlyImpactedColumnCount ? ` (${direct.length})` : '';
+        if (configurableKeys.showDirectColumnList || configurableKeys.showDirectColumnCount) {
+          const directCount = configurableKeys.showDirectColumnCount ? ` (${direct.length})` : '';
           content += `#### Directly Impacted Columns${directCount}\n`;
           
-          if (configurableKeys.showDirectlyImpactedColumnList) {
+          if (configurableKeys.showDirectColumnList) {
             if (direct.length > 0) {
               direct.forEach(column => {
                 const url = constructColumnUrl(column, dqlabs_createlink_url);
@@ -709,11 +709,11 @@ ${content}
         }
 
         // Show indirectly impacted columns only if requested
-        if (configurableKeys.showIndirectlyImpactedColumnList || configurableKeys.showIndirectlyImpactedColumnCount) {
-          const indirectCount = configurableKeys.showIndirectlyImpactedColumnCount ? ` (${indirect.length})` : '';
+        if (configurableKeys.showIndirectColumnList || configurableKeys.showIndirectColumnCount) {
+          const indirectCount = configurableKeys.showIndirectColumnCount ? ` (${indirect.length})` : '';
           content += `\n#### Indirectly Impacted Columns${indirectCount}\n`;
           
-          if (configurableKeys.showIndirectlyImpactedColumnList) {
+          if (configurableKeys.showIndirectColumnList) {
             if (indirect.length > 0) {
               indirect.forEach(column => {
                 const url = constructColumnUrl(column, dqlabs_createlink_url);
@@ -778,28 +778,30 @@ ${content}
     summary += `\n## Summary of Impacts\n`;
     
     // Show model-level impacts only if any asset-related keys are requested
-    if (configurableKeys.showDirectlyImpactedAssetCount || configurableKeys.showIndirectlyImpactedAssetCount || 
-        configurableKeys.showDirectlyImpactedAssetList || configurableKeys.showIndirectlyImpactedAssetList) {
+    if (configurableKeys.showDirectAssetCount || configurableKeys.showIndirectAssetCount || 
+        configurableKeys.showDirectAssetList || configurableKeys.showIndirectAssetList) {
       summary += `### Model-Level Impacts\n`;
       
-      if (configurableKeys.showDirectlyImpactedAssetCount) {
+      // Show count keys first
+      if (configurableKeys.showDirectAssetCount) {
         summary += `- **Total Directly Impacted:** ${totalDirect}\n`;
       }
-      if (configurableKeys.showIndirectlyImpactedAssetCount) {
+      if (configurableKeys.showIndirectAssetCount) {
         summary += `- **Total Indirectly Impacted:** ${totalIndirect}\n`;
       }
       summary += `- **Files Changed:** ${Object.keys(fileImpacts).length}\n\n`;
     }
     
     // Show column-level impacts only if any column-related keys are requested
-    if (configurableKeys.showDirectlyImpactedColumnCount || configurableKeys.showIndirectlyImpactedColumnCount || 
-        configurableKeys.showDirectlyImpactedColumnList || configurableKeys.showIndirectlyImpactedColumnList) {
+    if (configurableKeys.showDirectColumnCount || configurableKeys.showIndirectColumnCount || 
+        configurableKeys.showDirectColumnList || configurableKeys.showIndirectColumnList) {
       summary += `### Column-Level Impacts\n`;
       
-      if (configurableKeys.showDirectlyImpactedColumnCount) {
+      // Show count keys first
+      if (configurableKeys.showDirectColumnCount) {
         summary += `- **Total Directly Impacted Columns:** ${totalColumnDirect}\n`;
       }
-      if (configurableKeys.showIndirectlyImpactedColumnCount) {
+      if (configurableKeys.showIndirectColumnCount) {
         summary += `- **Total Indirectly Impacted Columns:** ${totalColumnIndirect}\n`;
       }
       summary += `- **Files with Column Changes:** ${filesWithColumnChanges}\n\n`;
