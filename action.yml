@@ -49,6 +49,11 @@ inputs:
     description: "URL to create links in DQLabs"
     required: true
 
+  dqlabs_configurable_keys:
+    description: "Comma-separated list of keys to include in the impact analysis report. Available keys: directly_impacted_column_count, indirectly_impacted_column_count, directly_impacted_asset_count, indirectly_impacted_asset_count, directly_impacted_column_list, indirectly_impacted_column_list, directly_impacted_asset_list, indirectly_impacted_asset_list"
+    required: false
+    default: ""
+
 outputs:
   impact_markdown:
     description: "Markdown summary of the impact analysis"

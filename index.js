@@ -19,9 +19,42 @@ const changedFilesList = core.getInput("changed_files_list") || "";
 const githubToken = core.getInput("GITHUB_TOKEN") || "";
 const dqlabs_base_url = core.getInput("dqlabs_base_url") || "";
 const dqlabs_createlink_url = core.getInput("dqlabs_createlink_url") || "";
+const dqlabs_configurable_keys = core.getInput("dqlabs_configurable_keys") || "";
 
 // Safe array processing utility
 const safeArray = (maybeArray) => Array.isArray(maybeArray) ? maybeArray : [];
+
+// Parse configurable keys
+const parseConfigurableKeys = (keysString) => {
+  if (!keysString || typeof keysString !== 'string') {
+    return {
+      showDirectlyImpactedColumnCount: true,
+      showIndirectlyImpactedColumnCount: true,
+      showDirectlyImpactedAssetCount: true,
+      showIndirectlyImpactedAssetCount: true,
+      showDirectlyImpactedColumnList: true,
+      showIndirectlyImpactedColumnList: true,
+      showDirectlyImpactedAssetList: true,
+      showIndirectlyImpactedAssetList: true
+    };
+  }
+
+  const keys = keysString.split(',').map(key => key.trim().toLowerCase());
+  
+  return {
+    showDirectlyImpactedColumnCount: keys.includes('directly_impacted_column_count'),
+    showIndirectlyImpactedColumnCount: keys.includes('indirectly_impacted_column_count'),
+    showDirectlyImpactedAssetCount: keys.includes('directly_impacted_asset_count'),
+    showIndirectlyImpactedAssetCount: keys.includes('indirectly_impacted_asset_count'),
+    showDirectlyImpactedColumnList: keys.includes('directly_impacted_column_list'),
+    showIndirectlyImpactedColumnList: keys.includes('indirectly_impacted_column_list'),
+    showDirectlyImpactedAssetList: keys.includes('directly_impacted_asset_list'),
+    showIndirectlyImpactedAssetList: keys.includes('indirectly_impacted_asset_list')
+  };
+};
+
+// Parse the configurable keys
+const configurableKeys = parseConfigurableKeys(dqlabs_configurable_keys);
 
 const getChangedFiles = async () => {
   try {
@@ -567,31 +600,49 @@ const run = async () => {
         content += `### File: ${filePath}\n`;
         content += `**Model:** ${taskName}\n\n`;
         
-        content += `#### Directly Impacted (${direct.length})\n`;
-        direct.forEach(model => {
-          const url = constructItemUrl(model, dqlabs_createlink_url);
-          const modelName = model?.name || 'Unknown';
+        // Show directly impacted assets only if requested
+        if (configurableKeys.showDirectlyImpactedAssetList || configurableKeys.showDirectlyImpactedAssetCount) {
+          const directCount = configurableKeys.showDirectlyImpactedAssetCount ? ` (${direct.length})` : '';
+          content += `#### Directly Impacted${directCount}\n`;
           
-          // Check if we have connection_id for clickable link
-          if (model?.connection_id && url !== "#") {
-            content += `- [${modelName}](${url})\n`;
+          if (configurableKeys.showDirectlyImpactedAssetList) {
+            direct.forEach(model => {
+              const url = constructItemUrl(model, dqlabs_createlink_url);
+              const modelName = model?.name || 'Unknown';
+              
+              // Check if we have connection_id for clickable link
+              if (model?.connection_id && url !== "#") {
+                content += `- [${modelName}](${url})\n`;
+              } else {
+                content += `- ${modelName}\n`;
+              }
+            });
           } else {
-            content += `- ${modelName}\n`;
+            content += `*Asset list not requested*\n`;
           }
-        });
+        }
 
-        content += `\n#### Indirectly Impacted (${indirect.length})\n`;
-        indirect.forEach(model => {
-          const url = constructItemUrl(model, dqlabs_createlink_url);
-          const modelName = model?.name || 'Unknown';
+        // Show indirectly impacted assets only if requested
+        if (configurableKeys.showIndirectlyImpactedAssetList || configurableKeys.showIndirectlyImpactedAssetCount) {
+          const indirectCount = configurableKeys.showIndirectlyImpactedAssetCount ? ` (${indirect.length})` : '';
+          content += `\n#### Indirectly Impacted${indirectCount}\n`;
           
-          // Check if we have connection_id for clickable link
-          if (model?.connection_id && url !== "#") {
-            content += `- [${modelName}](${url})\n`;
+          if (configurableKeys.showIndirectlyImpactedAssetList) {
+            indirect.forEach(model => {
+              const url = constructItemUrl(model, dqlabs_createlink_url);
+              const modelName = model?.name || 'Unknown';
+              
+              // Check if we have connection_id for clickable link
+              if (model?.connection_id && url !== "#") {
+                content += `- [${modelName}](${url})\n`;
+              } else {
+                content += `- ${modelName}\n`;
+              }
+            });
           } else {
-            content += `- ${modelName}\n`;
+            content += `*Asset list not requested*\n`;
           }
-        });
+        }
 
         content += '\n\n';
       });
@@ -631,40 +682,56 @@ ${content}
         content += `**Model:** ${taskName}\n`;
         content += `**Changed Columns:** ${changedColumns.join(', ')}\n\n`;
         
-        if (direct.length > 0) {
-          content += `#### Directly Impacted Columns (${direct.length})\n`;
-          direct.forEach(column => {
-            const url = constructColumnUrl(column, dqlabs_createlink_url);
-            const columnName = `${column?.table_name || 'Unknown'}.${column?.column_name || 'Unknown'}`;
-            
-            // Check if we have connection_id for clickable link
-            if (column?.connection_id && url !== "#") {
-              content += `- [${columnName}](${url}) - *${column?.impact_type || 'Referenced'}* (${column?.data_type || 'Unknown Type'})\n`;
+        // Show directly impacted columns only if requested
+        if (configurableKeys.showDirectlyImpactedColumnList || configurableKeys.showDirectlyImpactedColumnCount) {
+          const directCount = configurableKeys.showDirectlyImpactedColumnCount ? ` (${direct.length})` : '';
+          content += `#### Directly Impacted Columns${directCount}\n`;
+          
+          if (configurableKeys.showDirectlyImpactedColumnList) {
+            if (direct.length > 0) {
+              direct.forEach(column => {
+                const url = constructColumnUrl(column, dqlabs_createlink_url);
+                const columnName = `${column?.table_name || 'Unknown'}.${column?.column_name || 'Unknown'}`;
+                
+                // Check if we have connection_id for clickable link
+                if (column?.connection_id && url !== "#") {
+                  content += `- [${columnName}](${url}) - *${column?.impact_type || 'Referenced'}* (${column?.data_type || 'Unknown Type'})\n`;
+                } else {
+                  content += `- ${columnName} - *${column?.impact_type || 'Referenced'}* (${column?.data_type || 'Unknown Type'})\n`;
+                }
+              });
             } else {
-              content += `- ${columnName} - *${column?.impact_type || 'Referenced'}* (${column?.data_type || 'Unknown Type'})\n`;
+              content += `*No direct column impacts detected via DQLabs API*\n`;
             }
-          });
-        } else {
-          content += `#### Directly Impacted Columns (0)\n`;
-          content += `*No direct column impacts detected via DQLabs API*\n`;
+          } else {
+            content += `*Column list not requested*\n`;
+          }
         }
 
-        if (indirect.length > 0) {
-          content += `\n#### Indirectly Impacted Columns (${indirect.length})\n`;
-          indirect.forEach(column => {
-            const url = constructColumnUrl(column, dqlabs_createlink_url);
-            const columnName = `${column?.table_name || 'Unknown'}.${column?.column_name || 'Unknown'}`;
-            
-            // Check if we have connection_id for clickable link
-            if (column?.connection_id && url !== "#") {
-              content += `- [${columnName}](${url}) - *${column?.impact_type || 'Referenced'}* (${column?.data_type || 'Unknown Type'})\n`;
+        // Show indirectly impacted columns only if requested
+        if (configurableKeys.showIndirectlyImpactedColumnList || configurableKeys.showIndirectlyImpactedColumnCount) {
+          const indirectCount = configurableKeys.showIndirectlyImpactedColumnCount ? ` (${indirect.length})` : '';
+          content += `\n#### Indirectly Impacted Columns${indirectCount}\n`;
+          
+          if (configurableKeys.showIndirectlyImpactedColumnList) {
+            if (indirect.length > 0) {
+              indirect.forEach(column => {
+                const url = constructColumnUrl(column, dqlabs_createlink_url);
+                const columnName = `${column?.table_name || 'Unknown'}.${column?.column_name || 'Unknown'}`;
+                
+                // Check if we have connection_id for clickable link
+                if (column?.connection_id && url !== "#") {
+                  content += `- [${columnName}](${url}) - *${column?.impact_type || 'Referenced'}* (${column?.data_type || 'Unknown Type'})\n`;
+                } else {
+                  content += `- ${columnName} - *${column?.impact_type || 'Referenced'}* (${column?.data_type || 'Unknown Type'})\n`;
+                }
+              });
             } else {
-              content += `- ${columnName} - *${column?.impact_type || 'Referenced'}* (${column?.data_type || 'Unknown Type'})\n`;
+              content += `*No indirect column impacts detected via DQLabs API*\n`;
             }
-          });
-        } else {
-          content += `\n#### Indirectly Impacted Columns (0)\n`;
-          content += `*No indirect column impacts detected via DQLabs API*\n`;
+          } else {
+            content += `*Column list not requested*\n`;
+          }
         }
 
         content += '\n\n';
@@ -709,14 +776,34 @@ ${content}
     const filesWithColumnChanges = Object.keys(columnImpacts).filter(f => columnImpacts[f].changedColumns.length > 0).length;
     
     summary += `\n## Summary of Impacts\n`;
-    summary += `### Model-Level Impacts\n`;
-    summary += `- **Total Directly Impacted:** ${totalDirect}\n`;
-    summary += `- **Total Indirectly Impacted:** ${totalIndirect}\n`;
-    summary += `- **Files Changed:** ${Object.keys(fileImpacts).length}\n\n`;
-    summary += `### Column-Level Impacts\n`;
-    summary += `- **Total Directly Impacted Columns:** ${totalColumnDirect}\n`;
-    summary += `- **Total Indirectly Impacted Columns:** ${totalColumnIndirect}\n`;
-    summary += `- **Files with Column Changes:** ${filesWithColumnChanges}\n\n`;
+    
+    // Show model-level impacts only if any asset-related keys are requested
+    if (configurableKeys.showDirectlyImpactedAssetCount || configurableKeys.showIndirectlyImpactedAssetCount || 
+        configurableKeys.showDirectlyImpactedAssetList || configurableKeys.showIndirectlyImpactedAssetList) {
+      summary += `### Model-Level Impacts\n`;
+      
+      if (configurableKeys.showDirectlyImpactedAssetCount) {
+        summary += `- **Total Directly Impacted:** ${totalDirect}\n`;
+      }
+      if (configurableKeys.showIndirectlyImpactedAssetCount) {
+        summary += `- **Total Indirectly Impacted:** ${totalIndirect}\n`;
+      }
+      summary += `- **Files Changed:** ${Object.keys(fileImpacts).length}\n\n`;
+    }
+    
+    // Show column-level impacts only if any column-related keys are requested
+    if (configurableKeys.showDirectlyImpactedColumnCount || configurableKeys.showIndirectlyImpactedColumnCount || 
+        configurableKeys.showDirectlyImpactedColumnList || configurableKeys.showIndirectlyImpactedColumnList) {
+      summary += `### Column-Level Impacts\n`;
+      
+      if (configurableKeys.showDirectlyImpactedColumnCount) {
+        summary += `- **Total Directly Impacted Columns:** ${totalColumnDirect}\n`;
+      }
+      if (configurableKeys.showIndirectlyImpactedColumnCount) {
+        summary += `- **Total Indirectly Impacted Columns:** ${totalColumnIndirect}\n`;
+      }
+      summary += `- **Files with Column Changes:** ${filesWithColumnChanges}\n\n`;
+    }
 
     // Process column changes
     const processColumnChanges = async (extension, extractor, isYml = false) => {
