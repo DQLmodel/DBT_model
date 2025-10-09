@@ -53,9 +53,11 @@ deduplicated_data AS (
 )
 
 SELECT
+  RECORD_ID,
   "DATE",
   CATEGORY,
   QUANTITY,
+  TOTAL_AMOUNT,
   SALES_REP,
   REGION
 FROM deduplicated_data
