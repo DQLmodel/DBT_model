@@ -917,7 +917,7 @@ const run = async () => {
     
     // Add download link for JSON file to the report
     summary += "### 📎 Complete Impact Analysis Data\n";
-    summary += "Complete impact analysis data in JSON format is available below in a collapsible section.\n\n";
+    summary += "Complete impact analysis data in JSON format will be available as a downloadable file below.\n\n";
 
 
     // Post or update comment
