@@ -623,7 +623,7 @@ const run = async () => {
           report += `- **Total Indirectly Impacted:** ${totalIndirectAssets}\n`;
         }
         
-        // Show list keys second (as collapsible sections)
+        // Show list keys second (as collapsible sections) - same indentation level
         if (configurableKeys.showDirectAssetList) {
           const directAssets = [];
           Object.entries(fileImpacts).forEach(([filePath, impacts]) => {
@@ -639,7 +639,8 @@ const run = async () => {
           });
           
           if (directAssets.length > 0) {
-            report += `\n<details>\n<summary><b>Directly Impacted Assets (${directAssets.length})</b></summary>\n\n`;
+            report += `- Directly Impacted Assets (${directAssets.length})(list)\n`;
+            report += `<details>\n<summary><b>Directly Impacted Assets (${directAssets.length})</b></summary>\n\n`;
             report += directAssets.join('\n') + '\n';
             report += `</details>\n`;
           }
@@ -660,7 +661,8 @@ const run = async () => {
           });
           
           if (indirectAssets.length > 0) {
-            report += `\n<details>\n<summary><b>Indirectly Impacted Assets (${indirectAssets.length})</b></summary>\n\n`;
+            report += `- Indirectly Impacted Assets (${indirectAssets.length})(list)\n`;
+            report += `<details>\n<summary><b>Indirectly Impacted Assets (${indirectAssets.length})</b></summary>\n\n`;
             report += indirectAssets.join('\n') + '\n';
             report += `</details>\n`;
           }
@@ -688,7 +690,7 @@ const run = async () => {
           report += `- **Total Indirectly Impacted Columns:** ${totalIndirectColumns}\n`;
         }
         
-        // Show list keys second (as collapsible sections)
+        // Show list keys second (as collapsible sections) - same indentation level
         if (configurableKeys.showDirectColumnList) {
           const directColumns = [];
           Object.entries(columnImpacts).forEach(([filePath, impacts]) => {
@@ -704,7 +706,8 @@ const run = async () => {
           });
           
           if (directColumns.length > 0) {
-            report += `\n<details>\n<summary><b>Directly Impacted Columns (${directColumns.length})</b></summary>\n\n`;
+            report += `- Directly Impacted Columns (${directColumns.length})(list)\n`;
+            report += `<details>\n<summary><b>Directly Impacted Columns (${directColumns.length})</b></summary>\n\n`;
             report += directColumns.join('\n') + '\n';
             report += `</details>\n`;
           }
@@ -725,7 +728,8 @@ const run = async () => {
           });
           
           if (indirectColumns.length > 0) {
-            report += `\n<details>\n<summary><b>Indirectly Impacted Columns (${indirectColumns.length})</b></summary>\n\n`;
+            report += `- Indirectly Impacted Columns (${indirectColumns.length})(list)\n`;
+            report += `<details>\n<summary><b>Indirectly Impacted Columns (${indirectColumns.length})</b></summary>\n\n`;
             report += indirectColumns.join('\n') + '\n';
             report += `</details>\n`;
           }
