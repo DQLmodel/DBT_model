@@ -609,7 +609,7 @@ const run = async () => {
                            configurableKeys.showDirectAssetList || configurableKeys.showIndirectAssetList;
       
       if (hasAssetKeys) {
-        report += "### Asset level Impacts\n";
+        report += "<ol>### Asset level Impacts\n";
         
         // Calculate totals
         const totalDirectAssets = Object.values(fileImpacts).reduce((sum, impacts) => sum + impacts.direct.length, 0);
@@ -617,7 +617,7 @@ const run = async () => {
         
         // Show count keys first
         if (configurableKeys.showDirectAssetCount) {
-          report += `- **Total Directly Impacted:** ${totalDirectAssets}\n`;
+          report += `<li>- **Total Directly Impacted:** ${totalDirectAssets}\n</li> </ol>`;
         }
         if (configurableKeys.showIndirectAssetCount) {
           report += `- **Total Indirectly Impacted:** ${totalIndirectAssets}\n`;
