@@ -53,11 +53,9 @@ deduplicated_data AS (
 )
 
 SELECT
-  RECORD_ID,
   "DATE",
   CATEGORY,
   QUANTITY,
-  UNIT_PRICE,
   TOTAL_AMOUNT,
   SALES_REP,
   REGION
