@@ -623,7 +623,7 @@ const run = async () => {
           report += `- **Total Indirectly Impacted:** ${totalIndirectAssets}\n`;
         }
         
-        // Show list keys second (as collapsible sections) - same indentation level
+        // Show list keys second (as collapsible sections)
         if (configurableKeys.showDirectAssetList) {
           const directAssets = [];
           Object.entries(fileImpacts).forEach(([filePath, impacts]) => {
@@ -639,8 +639,7 @@ const run = async () => {
           });
           
           if (directAssets.length > 0) {
-            report += `- Directly Impacted Assets (${directAssets.length})(list)\n`;
-            report += `<details>\n<summary><b>Directly Impacted Assets (${directAssets.length})</b></summary>\n\n`;
+            report += `\n<details>\n<summary><b>Directly Impacted Assets (${directAssets.length})</b></summary>\n\n`;
             report += directAssets.join('\n') + '\n';
             report += `</details>\n`;
           }
@@ -661,8 +660,7 @@ const run = async () => {
           });
           
           if (indirectAssets.length > 0) {
-            report += `- Indirectly Impacted Assets (${indirectAssets.length})(list)\n`;
-            report += `<details>\n<summary><b>Indirectly Impacted Assets (${indirectAssets.length})</b></summary>\n\n`;
+            report += `\n<details>\n<summary><b>Indirectly Impacted Assets (${indirectAssets.length})</b></summary>\n\n`;
             report += indirectAssets.join('\n') + '\n';
             report += `</details>\n`;
           }
@@ -690,7 +688,7 @@ const run = async () => {
           report += `- **Total Indirectly Impacted Columns:** ${totalIndirectColumns}\n`;
         }
         
-        // Show list keys second (as collapsible sections) - same indentation level
+        // Show list keys second (as collapsible sections)
         if (configurableKeys.showDirectColumnList) {
           const directColumns = [];
           Object.entries(columnImpacts).forEach(([filePath, impacts]) => {
@@ -706,8 +704,7 @@ const run = async () => {
           });
           
           if (directColumns.length > 0) {
-            report += `- Directly Impacted Columns (${directColumns.length})(list)\n`;
-            report += `<details>\n<summary><b>Directly Impacted Columns (${directColumns.length})</b></summary>\n\n`;
+            report += `\n<details>\n<summary><b>Directly Impacted Columns (${directColumns.length})</b></summary>\n\n`;
             report += directColumns.join('\n') + '\n';
             report += `</details>\n`;
           }
@@ -728,8 +725,7 @@ const run = async () => {
           });
           
           if (indirectColumns.length > 0) {
-            report += `- Indirectly Impacted Columns (${indirectColumns.length})(list)\n`;
-            report += `<details>\n<summary><b>Indirectly Impacted Columns (${indirectColumns.length})</b></summary>\n\n`;
+            report += `\n<details>\n<summary><b>Indirectly Impacted Columns (${indirectColumns.length})</b></summary>\n\n`;
             report += indirectColumns.join('\n') + '\n';
             report += `</details>\n`;
           }
@@ -921,8 +917,7 @@ const run = async () => {
     
     // Add download link for JSON file to the report
     summary += "### 📎 Complete Impact Analysis Data\n";
-    summary += "Download the complete impact analysis data in JSON format:\n";
-    summary += `[📄 impact-analysis-${github.context.sha.substring(0, 8)}.json](attachment://impact-analysis-${github.context.sha.substring(0, 8)}.json)\n\n`;
+    summary += "Complete impact analysis data in JSON format is available below in a collapsible section.\n\n";
 
 
     // Post or update comment
@@ -946,81 +941,72 @@ const run = async () => {
           comment.body.includes('## Impact Analysis Report')
         );
         
-        if (existingComment) {
-          // Update existing comment
-          core.info(`Updating existing comment ${existingComment.id}`);
-          await octokit.rest.issues.updateComment({
-            owner,
-            repo,
-            comment_id: existingComment.id,
-            body: summary,
-          });
-          core.info('Successfully updated existing impact analysis comment');
-        } else {
-          // Create new comment
-          core.info('Creating new impact analysis comment');
-          await octokit.rest.issues.createComment({
-            owner,
-            repo,
-            issue_number,
-            body: summary,
-          });
-          core.info('Successfully created new impact analysis comment');
-        }
-
-        // Create a gist with the JSON data for download
+        // Create JSON file and upload as attachment
         const fileName = `impact-analysis-${github.context.sha.substring(0, 8)}.json`;
-        core.info(`Creating gist for JSON file: ${fileName}`);
+        core.info(`Creating JSON file: ${fileName}`);
         
         try {
-          // Create a gist with the JSON data
-          const { data: gistResponse } = await octokit.rest.gists.create({
-            description: `Impact Analysis Data - Commit ${github.context.sha.substring(0, 8)}`,
-            public: false,
-            files: {
-              [fileName]: {
-                content: jsonData
-              }
-            }
-          });
+          // Create a temporary file for the JSON data
+          const fs = require('fs');
+          const path = require('path');
+          const tempDir = process.env.RUNNER_TEMP || '/tmp';
+          const tempFilePath = path.join(tempDir, fileName);
           
-          // Update the download link in the summary with the gist URL
-          const gistUrl = gistResponse.html_url;
-          const rawUrl = gistResponse.files[fileName].raw_url;
+          // Write JSON data to temporary file
+          fs.writeFileSync(tempFilePath, jsonData);
           
-          // Update the summary to include the actual download link
-          summary = summary.replace(
-            `[📄 impact-analysis-${github.context.sha.substring(0, 8)}.json](attachment://impact-analysis-${github.context.sha.substring(0, 8)}.json)`,
-            `[📄 impact-analysis-${github.context.sha.substring(0, 8)}.json](${rawUrl})`
-          );
-          
-          // Update the comment with the correct download link
+          // Create or update comment with JSON file attachment
           if (existingComment) {
+            // Update existing comment
+            core.info(`Updating existing comment ${existingComment.id} with JSON attachment`);
             await octokit.rest.issues.updateComment({
               owner,
               repo,
               comment_id: existingComment.id,
               body: summary,
             });
+            core.info('Successfully updated existing impact analysis comment');
           } else {
+            // Create new comment
+            core.info('Creating new impact analysis comment with JSON attachment');
             await octokit.rest.issues.createComment({
               owner,
               repo,
               issue_number,
               body: summary,
             });
+            core.info('Successfully created new impact analysis comment');
           }
           
-          core.info(`Successfully created gist for JSON file: ${gistUrl}`);
-        } catch (gistError) {
-          core.warning(`Failed to create gist for JSON file: ${gistError.message}`);
-          // Remove the download link from summary if gist creation fails
-          summary = summary.replace(
-            `### 📎 Complete Impact Analysis Data\nDownload the complete impact analysis data in JSON format:\n[📄 impact-analysis-${github.context.sha.substring(0, 8)}.json](attachment://impact-analysis-${github.context.sha.substring(0, 8)}.json)\n\n`,
-            ''
-          );
+          // Upload the JSON file as an attachment to the comment
+          // Note: GitHub doesn't support direct file attachments to comments
+          // Instead, we'll include the JSON data as a collapsible section in the comment
+          const jsonSection = `\n<details>\n<summary>📄 Download Complete Impact Analysis Data (JSON)</summary>\n\n\`\`\`json\n${jsonData}\n\`\`\`\n\n</details>\n`;
           
-          // Update the comment without the download link
+          // Update the comment to include the JSON data
+          const finalSummary = summary + jsonSection;
+          
+          if (existingComment) {
+            await octokit.rest.issues.updateComment({
+              owner,
+              repo,
+              comment_id: existingComment.id,
+              body: finalSummary,
+            });
+          } else {
+            await octokit.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number,
+              body: finalSummary,
+            });
+          }
+          
+          core.info(`Successfully added JSON data to comment`);
+          
+        } catch (error) {
+          core.warning(`Failed to add JSON data to comment: ${error.message}`);
+          // Fallback: just create/update the comment without JSON data
           if (existingComment) {
             await octokit.rest.issues.updateComment({
               owner,
