@@ -609,65 +609,27 @@ const run = async () => {
                            configurableKeys.showDirectAssetList || configurableKeys.showIndirectAssetList;
       
       if (hasAssetKeys) {
-        report += "<ol>### Asset level Impacts\n";
-        
-        // Calculate totals
-        const totalDirectAssets = Object.values(fileImpacts).reduce((sum, impacts) => sum + impacts.direct.length, 0);
-        const totalIndirectAssets = Object.values(fileImpacts).reduce((sum, impacts) => sum + impacts.indirect.length, 0);
-        
-        // Show count keys first
-        if (configurableKeys.showDirectAssetCount) {
-          report += `<li>- **Total Directly Impacted:** ${totalDirectAssets}\n</li> </ol>`;
-        }
-        if (configurableKeys.showIndirectAssetCount) {
-          report += `- **Total Indirectly Impacted:** ${totalIndirectAssets}\n`;
-        }
-        
-        // Show list keys second (as collapsible sections)
-        if (configurableKeys.showDirectAssetList) {
-          const directAssets = [];
-          Object.entries(fileImpacts).forEach(([filePath, impacts]) => {
-            impacts.direct.forEach(model => {
-              const url = constructItemUrl(model, dqlabs_createlink_url);
-              const modelName = model?.name || 'Unknown';
-              if (model?.connection_id && url !== "#") {
-                directAssets.push(`- [${modelName}](${url})`);
-              } else {
-                directAssets.push(`- ${modelName}`);
-              }
-            });
-          });
-          
-          if (directAssets.length > 0) {
-            report += `\n<details>\n<summary><b>Directly Impacted Assets (${directAssets.length})</b></summary>\n\n`;
-            report += directAssets.join('\n') + '\n';
-            report += `</details>\n`;
-          }
-        }
-        
-        if (configurableKeys.showIndirectAssetList) {
-          const indirectAssets = [];
-          Object.entries(fileImpacts).forEach(([filePath, impacts]) => {
-            impacts.indirect.forEach(model => {
-              const url = constructItemUrl(model, dqlabs_createlink_url);
-              const modelName = model?.name || 'Unknown';
-              if (model?.connection_id && url !== "#") {
-                indirectAssets.push(`- [${modelName}](${url})`);
-              } else {
-                indirectAssets.push(`- ${modelName}`);
-              }
-            });
-          });
-          
-          if (indirectAssets.length > 0) {
-            report += `\n<details>\n<summary><b>Indirectly Impacted Assets (${indirectAssets.length})</b></summary>\n\n`;
-            report += indirectAssets.join('\n') + '\n';
-            report += `</details>\n`;
-          }
-        }
-        
-        report += "\n";
-      }
+  report += `\n### Asset level Impacts\n`;
+
+  // Calculate totals
+  const totalDirectAssets = Object.values(fileImpacts).reduce((sum, impacts) => sum + impacts.direct.length, 0);
+  const totalIndirectAssets = Object.values(fileImpacts).reduce((sum, impacts) => sum + impacts.indirect.length, 0);
+
+  // 1. Total Indirectly Impacted
+  if (configurableKeys.showIndirectAssetCount) {
+    report += `- Total Indirectly Impacted: **${totalIndirectAssets}**\n`;
+  }
+
+  // 2. Directly Impacted Assets
+  if (configurableKeys.showDirectAssetList) {
+    report += `- Directly Impacted Assets\n`;
+  }
+
+  // 3. Indirectly Impacted Assets
+  if (configurableKeys.showIndirectAssetList) {
+    report += `- Indirectly Impacted Assets: **${totalIndirectAssets}**\n`;
+  }
+}
       
       // 3. Column level Impacts section (only if column keys are requested)
       const hasColumnKeys = configurableKeys.showDirectColumnCount || configurableKeys.showIndirectColumnCount || 
