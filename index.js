@@ -639,8 +639,9 @@ const run = async () => {
           });
           
           if (directAssets.length > 0) {
-            report += `- **Directly Impacted Assets:**\n`;
-            report += directAssets.map(item => `  ${item}`).join('\n') + '\n';
+            report += `\n<details>\n<summary><b>Directly Impacted Assets (${directAssets.length})</b></summary>\n\n`;
+            report += directAssets.join('\n') + '\n';
+            report += `</details>\n`;
           }
         }
         
@@ -659,9 +660,9 @@ const run = async () => {
           });
           
           if (indirectAssets.length > 0) {
-            report += `- **Indirectly Impacted Assets:**\n`;
-            report += indirectAssets.map(item => `  ${item}`).join('\n') + '\n';
-
+            report += `\n<details>\n<summary><b>Indirectly Impacted Assets (${indirectAssets.length})</b></summary>\n\n`;
+            report += indirectAssets.join('\n') + '\n';
+            report += `</details>\n`;
           }
         }
         

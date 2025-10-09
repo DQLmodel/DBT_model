@@ -56,8 +56,8 @@ SELECT
   RECORD_ID,
   "DATE",
   CATEGORY,
-  QUANTITY,
   TOTAL_AMOUNT,
+  QUANTITY,
   SALES_REP,
   REGION
 FROM deduplicated_data
