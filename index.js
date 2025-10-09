@@ -35,7 +35,9 @@ const parseConfigurableKeys = (keysString) => {
       showDirectColumnList: true,
       showIndirectColumnList: true,
       showDirectAssetList: true,
-      showIndirectAssetList: true
+      showIndirectAssetList: true,
+      showSqlColumnChanges: true,
+      showYmlColumnChanges: true
     };
   }
 
@@ -49,7 +51,9 @@ const parseConfigurableKeys = (keysString) => {
     showDirectColumnList: keys.includes('direct_column_list'),
     showIndirectColumnList: keys.includes('indirect_column_list'),
     showDirectAssetList: keys.includes('direct_asset_list'),
-    showIndirectAssetList: keys.includes('indirect_asset_list')
+    showIndirectAssetList: keys.includes('indirect_asset_list'),
+    showSqlColumnChanges: keys.includes('sql_column_changes'),
+    showYmlColumnChanges: keys.includes('yml_column_changes')
   };
 };
 
@@ -619,7 +623,7 @@ const run = async () => {
           report += `- **Total Indirectly Impacted:** ${totalIndirectAssets}\n`;
         }
         
-        // Show list keys second (as collapsible sections)
+        // Show list keys second (as collapsible sections) - same indentation level
         if (configurableKeys.showDirectAssetList) {
           const directAssets = [];
           Object.entries(fileImpacts).forEach(([filePath, impacts]) => {
@@ -635,7 +639,8 @@ const run = async () => {
           });
           
           if (directAssets.length > 0) {
-            report += `\n<details>\n<summary><b>Directly Impacted Assets (${directAssets.length})</b></summary>\n\n`;
+            report += `- Directly Impacted Assets (${directAssets.length})(list)\n`;
+            report += `<details>\n<summary><b>Directly Impacted Assets (${directAssets.length})</b></summary>\n\n`;
             report += directAssets.join('\n') + '\n';
             report += `</details>\n`;
           }
@@ -656,7 +661,8 @@ const run = async () => {
           });
           
           if (indirectAssets.length > 0) {
-            report += `\n<details>\n<summary><b>Indirectly Impacted Assets (${indirectAssets.length})</b></summary>\n\n`;
+            report += `- Indirectly Impacted Assets (${indirectAssets.length})(list)\n`;
+            report += `<details>\n<summary><b>Indirectly Impacted Assets (${indirectAssets.length})</b></summary>\n\n`;
             report += indirectAssets.join('\n') + '\n';
             report += `</details>\n`;
           }
@@ -684,7 +690,7 @@ const run = async () => {
           report += `- **Total Indirectly Impacted Columns:** ${totalIndirectColumns}\n`;
         }
         
-        // Show list keys second (as collapsible sections)
+        // Show list keys second (as collapsible sections) - same indentation level
         if (configurableKeys.showDirectColumnList) {
           const directColumns = [];
           Object.entries(columnImpacts).forEach(([filePath, impacts]) => {
@@ -700,7 +706,8 @@ const run = async () => {
           });
           
           if (directColumns.length > 0) {
-            report += `\n<details>\n<summary><b>Directly Impacted Columns (${directColumns.length})</b></summary>\n\n`;
+            report += `- Directly Impacted Columns (${directColumns.length})(list)\n`;
+            report += `<details>\n<summary><b>Directly Impacted Columns (${directColumns.length})</b></summary>\n\n`;
             report += directColumns.join('\n') + '\n';
             report += `</details>\n`;
           }
@@ -721,7 +728,8 @@ const run = async () => {
           });
           
           if (indirectColumns.length > 0) {
-            report += `\n<details>\n<summary><b>Indirectly Impacted Columns (${indirectColumns.length})</b></summary>\n\n`;
+            report += `- Indirectly Impacted Columns (${indirectColumns.length})(list)\n`;
+            report += `<details>\n<summary><b>Indirectly Impacted Columns (${indirectColumns.length})</b></summary>\n\n`;
             report += indirectColumns.join('\n') + '\n';
             report += `</details>\n`;
           }
@@ -799,14 +807,32 @@ const run = async () => {
     // Build the new simplified report
     summary = buildNewAnalysisReport(fileImpacts, columnImpacts, changedFiles);
     
-    // Add SQL and YML Column Changes sections (always show)
-    summary += "### SQL Column Changes\n";
-    summary += `Added columns(${sqlAdded.length}): ${sqlAdded.join(', ')}\n`;
-    summary += `Removed columns(${sqlRemoved.length}): ${sqlRemoved.join(', ')}\n\n`;
+    // Add SQL and YML Column Changes sections (conditional)
+    if (configurableKeys.showSqlColumnChanges) {
+      summary += "### SQL Column Changes\n";
+      summary += `Added columns(${sqlAdded.length}):\n`;
+      if (sqlAdded.length > 0) {
+        summary += `${sqlAdded.join(', ')}\n`;
+      }
+      summary += `Removed columns(${sqlRemoved.length}):\n`;
+      if (sqlRemoved.length > 0) {
+        summary += `${sqlRemoved.join(', ')}\n`;
+      }
+      summary += "\n";
+    }
     
-    summary += "### YML Column Changes\n";
-    summary += `Added columns(${ymlAdded.length}): ${ymlAdded.map(c => c.name).join(', ')}\n`;
-    summary += `Removed columns(${ymlRemoved.length}): ${ymlRemoved.map(c => c.name).join(', ')}\n\n`;
+    if (configurableKeys.showYmlColumnChanges) {
+      summary += "### YML Column Changes\n";
+      summary += `Added columns(${ymlAdded.length}):\n`;
+      if (ymlAdded.length > 0) {
+        summary += `${ymlAdded.map(c => c.name).join(', ')}\n`;
+      }
+      summary += `Removed columns(${ymlRemoved.length}):\n`;
+      if (ymlRemoved.length > 0) {
+        summary += `${ymlRemoved.map(c => c.name).join(', ')}\n`;
+      }
+      summary += "\n";
+    }
 
 
     // Post or update comment
