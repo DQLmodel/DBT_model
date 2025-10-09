@@ -609,27 +609,64 @@ const run = async () => {
                            configurableKeys.showDirectAssetList || configurableKeys.showIndirectAssetList;
       
       if (hasAssetKeys) {
-  report += `\n### Asset level Impacts\n`;
+        report += "### Asset level Impacts\n";
+        
+        // Calculate totals
+        const totalDirectAssets = Object.values(fileImpacts).reduce((sum, impacts) => sum + impacts.direct.length, 0);
+        const totalIndirectAssets = Object.values(fileImpacts).reduce((sum, impacts) => sum + impacts.indirect.length, 0);
+        
+        // Show count keys first
+        if (configurableKeys.showDirectAssetCount) {
+          report += `- **Total Directly Impacted:** ${totalDirectAssets}\n`;
+        }
+        if (configurableKeys.showIndirectAssetCount) {
+          report += `- **Total Indirectly Impacted:** ${totalIndirectAssets}\n`;
+        }
+        
+        // Show list keys second (as collapsible sections)
+        if (configurableKeys.showDirectAssetList) {
+          const directAssets = [];
+          Object.entries(fileImpacts).forEach(([filePath, impacts]) => {
+            impacts.direct.forEach(model => {
+              const url = constructItemUrl(model, dqlabs_createlink_url);
+              const modelName = model?.name || 'Unknown';
+              if (model?.connection_id && url !== "#") {
+                directAssets.push(`- [${modelName}](${url})`);
+              } else {
+                directAssets.push(`- ${modelName}`);
+              }
+            });
+          });
+          
+          if (directAssets.length > 0) {
+            report += `- **Directly Impacted Assets:**\n`;
+            report += directAssets.map(item => `  ${item}`).join('\n') + '\n';
+          }
+        }
+        
+        if (configurableKeys.showIndirectAssetList) {
+          const indirectAssets = [];
+          Object.entries(fileImpacts).forEach(([filePath, impacts]) => {
+            impacts.indirect.forEach(model => {
+              const url = constructItemUrl(model, dqlabs_createlink_url);
+              const modelName = model?.name || 'Unknown';
+              if (model?.connection_id && url !== "#") {
+                indirectAssets.push(`- [${modelName}](${url})`);
+              } else {
+                indirectAssets.push(`- ${modelName}`);
+              }
+            });
+          });
+          
+          if (indirectAssets.length > 0) {
+            report += `- **Indirectly Impacted Assets:**\n`;
+            report += indirectAssets.map(item => `  ${item}`).join('\n') + '\n';
 
-  // Calculate totals
-  const totalDirectAssets = Object.values(fileImpacts).reduce((sum, impacts) => sum + impacts.direct.length, 0);
-  const totalIndirectAssets = Object.values(fileImpacts).reduce((sum, impacts) => sum + impacts.indirect.length, 0);
-
-  // 1. Total Indirectly Impacted
-  if (configurableKeys.showIndirectAssetCount) {
-    report += `- Total Indirectly Impacted: **${totalIndirectAssets}**\n`;
-  }
-
-  // 2. Directly Impacted Assets
-  if (configurableKeys.showDirectAssetList) {
-    report += `- Directly Impacted Assets\n`;
-  }
-
-  // 3. Indirectly Impacted Assets
-  if (configurableKeys.showIndirectAssetList) {
-    report += `- Indirectly Impacted Assets: **${totalIndirectAssets}**\n`;
-  }
-}
+          }
+        }
+        
+        report += "\n";
+      }
       
       // 3. Column level Impacts section (only if column keys are requested)
       const hasColumnKeys = configurableKeys.showDirectColumnCount || configurableKeys.showIndirectColumnCount || 
