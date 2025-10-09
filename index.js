@@ -941,9 +941,9 @@ const run = async () => {
           comment.body.includes('## Impact Analysis Report')
         );
         
-        // Create JSON file and upload as attachment
+        // Create a downloadable JSON file using GitHub's file upload API
         const fileName = `impact-analysis-${github.context.sha.substring(0, 8)}.json`;
-        core.info(`Creating JSON file: ${fileName}`);
+        core.info(`Creating downloadable JSON file: ${fileName}`);
         
         try {
           // Create a temporary file for the JSON data
@@ -955,58 +955,49 @@ const run = async () => {
           // Write JSON data to temporary file
           fs.writeFileSync(tempFilePath, jsonData);
           
-          // Create or update comment with JSON file attachment
+          // Create a gist with the JSON file for download
+          const { data: gistResponse } = await octokit.rest.gists.create({
+            description: `Impact Analysis Data - Commit ${github.context.sha.substring(0, 8)}`,
+            public: false,
+            files: {
+              [fileName]: {
+                content: jsonData
+              }
+            }
+          });
+          
+          // Get the raw download URL
+          const downloadUrl = gistResponse.files[fileName].raw_url;
+          
+          // Add the download link to the summary
+          const finalSummary = summary + `[📄 Download Complete Impact Analysis Data (${fileName})](${downloadUrl})\n\n`;
+          
+          // Create or update comment with the download link
           if (existingComment) {
-            // Update existing comment
-            core.info(`Updating existing comment ${existingComment.id} with JSON attachment`);
+            core.info(`Updating existing comment ${existingComment.id} with JSON download link`);
             await octokit.rest.issues.updateComment({
               owner,
               repo,
               comment_id: existingComment.id,
-              body: summary,
+              body: finalSummary,
             });
             core.info('Successfully updated existing impact analysis comment');
           } else {
-            // Create new comment
-            core.info('Creating new impact analysis comment with JSON attachment');
+            core.info('Creating new impact analysis comment with JSON download link');
             await octokit.rest.issues.createComment({
               owner,
               repo,
               issue_number,
-              body: summary,
+              body: finalSummary,
             });
             core.info('Successfully created new impact analysis comment');
           }
           
-          // Upload the JSON file as an attachment to the comment
-          // Note: GitHub doesn't support direct file attachments to comments
-          // Instead, we'll include the JSON data as a collapsible section in the comment
-          const jsonSection = `\n<details>\n<summary>📄 Download Complete Impact Analysis Data (JSON)</summary>\n\n\`\`\`json\n${jsonData}\n\`\`\`\n\n</details>\n`;
-          
-          // Update the comment to include the JSON data
-          const finalSummary = summary + jsonSection;
-          
-          if (existingComment) {
-            await octokit.rest.issues.updateComment({
-              owner,
-              repo,
-              comment_id: existingComment.id,
-              body: finalSummary,
-            });
-          } else {
-            await octokit.rest.issues.createComment({
-              owner,
-              repo,
-              issue_number,
-              body: finalSummary,
-            });
-          }
-          
-          core.info(`Successfully added JSON data to comment`);
+          core.info(`Successfully created downloadable JSON file: ${downloadUrl}`);
           
         } catch (error) {
-          core.warning(`Failed to add JSON data to comment: ${error.message}`);
-          // Fallback: just create/update the comment without JSON data
+          core.warning(`Failed to create downloadable JSON file: ${error.message}`);
+          // Fallback: just create/update the comment without JSON download link
           if (existingComment) {
             await octokit.rest.issues.updateComment({
               owner,
