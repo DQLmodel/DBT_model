@@ -860,30 +860,22 @@ const run = async () => {
       // Process file impacts
       Object.entries(fileImpacts).forEach(([filePath, impacts]) => {
         impacts.direct.forEach(model => {
+          const redirectUrl = constructItemUrl(model, dqlabs_createlink_url);
           jsonData.asset_impacts.direct.push({
             file_path: filePath,
             model_name: model.name,
-            connection_id: model.connection_id,
-            redirect_id: model.redirect_id,
             task_name: impacts.taskName,
-            asset_group: model.asset_group,
-            entity: model.entity,
-            flow: model.flow,
-            depth: model.depth
+            redirect_url: redirectUrl
           });
         });
 
         impacts.indirect.forEach(model => {
+          const redirectUrl = constructItemUrl(model, dqlabs_createlink_url);
           jsonData.asset_impacts.indirect.push({
             file_path: filePath,
             model_name: model.name,
-            connection_id: model.connection_id,
-            redirect_id: model.redirect_id,
             task_name: impacts.taskName,
-            asset_group: model.asset_group,
-            entity: model.entity,
-            flow: model.flow,
-            depth: model.depth
+            redirect_url: redirectUrl
           });
         });
       });
@@ -891,36 +883,26 @@ const run = async () => {
       // Process column impacts
       Object.entries(columnImpacts).forEach(([filePath, impacts]) => {
         impacts.direct.forEach(column => {
+          const redirectUrl = constructColumnUrl(column, dqlabs_createlink_url);
           jsonData.column_impacts.direct.push({
             file_path: filePath,
             table_name: column.table_name,
             column_name: column.column_name,
             data_type: column.data_type,
-            impact_type: column.impact_type,
-            connection_id: column.connection_id,
-            redirect_id: column.redirect_id,
             task_name: impacts.taskName,
-            asset_group: column.asset_group,
-            entity: column.entity,
-            flow: column.flow,
-            depth: column.depth
+            redirect_url: redirectUrl
           });
         });
 
         impacts.indirect.forEach(column => {
+          const redirectUrl = constructColumnUrl(column, dqlabs_createlink_url);
           jsonData.column_impacts.indirect.push({
             file_path: filePath,
             table_name: column.table_name,
             column_name: column.column_name,
             data_type: column.data_type,
-            impact_type: column.impact_type,
-            connection_id: column.connection_id,
-            redirect_id: column.redirect_id,
             task_name: impacts.taskName,
-            asset_group: column.asset_group,
-            entity: column.entity,
-            flow: column.flow,
-            depth: column.depth
+            redirect_url: redirectUrl
           });
         });
       });
