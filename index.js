@@ -816,6 +816,126 @@ const run = async () => {
       summary += `Removed columns(${ymlRemoved.length}): ${ymlRemoved.map(c => c.name).join(', ')}\n\n`;
     }
 
+    // Generate comprehensive JSON file with all data (regardless of configurable keys)
+    const generateComprehensiveJSON = (fileImpacts, columnImpacts, changedFiles, sqlAdded, sqlRemoved, ymlAdded, ymlRemoved) => {
+      const jsonData = {
+        metadata: {
+          timestamp: new Date().toISOString(),
+          commit_sha: github.context.sha,
+          pull_request_number: github.context.payload.pull_request?.number || null,
+          configurable_keys_used: dqlabs_configurable_keys ? dqlabs_configurable_keys.split(',').map(k => k.trim()) : [],
+          dqlabs_base_url: dqlabs_base_url,
+          analysis_type: "dbt_impact_analysis"
+        },
+        changed_files: changedFiles,
+        asset_impacts: {
+          direct: [],
+          indirect: []
+        },
+        column_impacts: {
+          direct: [],
+          indirect: []
+        },
+        sql_column_changes: {
+          added: sqlAdded,
+          removed: sqlRemoved
+        },
+        yml_column_changes: {
+          added: ymlAdded.map(c => c.name),
+          removed: ymlRemoved.map(c => c.name)
+        },
+        summary: {
+          total_direct_assets: 0,
+          total_indirect_assets: 0,
+          total_direct_columns: 0,
+          total_indirect_columns: 0,
+          total_sql_added: sqlAdded.length,
+          total_sql_removed: sqlRemoved.length,
+          total_yml_added: ymlAdded.length,
+          total_yml_removed: ymlRemoved.length,
+          total_changed_files: changedFiles.length
+        }
+      };
+
+      // Process file impacts
+      Object.entries(fileImpacts).forEach(([filePath, impacts]) => {
+        impacts.direct.forEach(model => {
+          jsonData.asset_impacts.direct.push({
+            file_path: filePath,
+            model_name: model.name,
+            connection_id: model.connection_id,
+            redirect_id: model.redirect_id,
+            task_name: impacts.taskName,
+            asset_group: model.asset_group,
+            entity: model.entity,
+            flow: model.flow,
+            depth: model.depth
+          });
+        });
+
+        impacts.indirect.forEach(model => {
+          jsonData.asset_impacts.indirect.push({
+            file_path: filePath,
+            model_name: model.name,
+            connection_id: model.connection_id,
+            redirect_id: model.redirect_id,
+            task_name: impacts.taskName,
+            asset_group: model.asset_group,
+            entity: model.entity,
+            flow: model.flow,
+            depth: model.depth
+          });
+        });
+      });
+
+      // Process column impacts
+      Object.entries(columnImpacts).forEach(([filePath, impacts]) => {
+        impacts.direct.forEach(column => {
+          jsonData.column_impacts.direct.push({
+            file_path: filePath,
+            table_name: column.table_name,
+            column_name: column.column_name,
+            data_type: column.data_type,
+            impact_type: column.impact_type,
+            connection_id: column.connection_id,
+            redirect_id: column.redirect_id,
+            task_name: impacts.taskName,
+            asset_group: column.asset_group,
+            entity: column.entity,
+            flow: column.flow,
+            depth: column.depth
+          });
+        });
+
+        impacts.indirect.forEach(column => {
+          jsonData.column_impacts.indirect.push({
+            file_path: filePath,
+            table_name: column.table_name,
+            column_name: column.column_name,
+            data_type: column.data_type,
+            impact_type: column.impact_type,
+            connection_id: column.connection_id,
+            redirect_id: column.redirect_id,
+            task_name: impacts.taskName,
+            asset_group: column.asset_group,
+            entity: column.entity,
+            flow: column.flow,
+            depth: column.depth
+          });
+        });
+      });
+
+      // Calculate summary totals
+      jsonData.summary.total_direct_assets = jsonData.asset_impacts.direct.length;
+      jsonData.summary.total_indirect_assets = jsonData.asset_impacts.indirect.length;
+      jsonData.summary.total_direct_columns = jsonData.column_impacts.direct.length;
+      jsonData.summary.total_indirect_columns = jsonData.column_impacts.indirect.length;
+
+      return JSON.stringify(jsonData, null, 2);
+    };
+
+    // Generate comprehensive JSON data
+    const comprehensiveJsonData = generateComprehensiveJSON(fileImpacts, columnImpacts, changedFiles, sqlAdded, sqlRemoved, ymlAdded, ymlRemoved);
 
     // Post or update comment
     if (github.context.payload.pull_request) {
@@ -838,27 +958,62 @@ const run = async () => {
           comment.body.includes('## Impact Analysis Report')
         );
         
+        // Create a downloadable JSON file using GitHub Gist
+        const fileName = `impact-analysis-${github.context.sha.substring(0, 8)}.json`;
+        let downloadUrl = null;
+        
+        try {
+          core.info(`Creating downloadable JSON file: ${fileName}`);
+          
+          // Create a gist with the JSON data
+          const { data: gistResponse } = await octokit.rest.gists.create({
+            description: `DBT Impact Analysis Data - Commit ${github.context.sha.substring(0, 8)} - PR #${github.context.payload.pull_request.number}`,
+            public: false,
+            files: {
+              [fileName]: {
+                content: comprehensiveJsonData
+              }
+            }
+          });
+          
+          // Get the raw download URL
+          downloadUrl = gistResponse.files[fileName].raw_url;
+          core.info(`Successfully created downloadable JSON file: ${downloadUrl}`);
+          
+        } catch (gistError) {
+          core.warning(`Failed to create downloadable JSON file: ${gistError.message}`);
+          // Continue without the download link
+        }
+        
+        // Add download link to summary if available
+        let finalSummary = summary;
+        if (downloadUrl) {
+          finalSummary += "\n### 📎 Complete Impact Analysis Data\n";
+          finalSummary += `[📄 Download Complete Impact Analysis Data (${fileName})](${downloadUrl})\n\n`;
+          finalSummary += "*This JSON file contains all impact analysis data regardless of display preferences.*\n";
+        }
+        
+        // Create or update comment with the download link
         if (existingComment) {
-          // Update existing comment
-          core.info(`Updating existing comment ${existingComment.id}`);
+          core.info(`Updating existing comment ${existingComment.id} with JSON download link`);
           await octokit.rest.issues.updateComment({
             owner,
             repo,
             comment_id: existingComment.id,
-            body: summary,
+            body: finalSummary,
           });
           core.info('Successfully updated existing impact analysis comment');
         } else {
-          // Create new comment
-          core.info('Creating new impact analysis comment');
+          core.info('Creating new impact analysis comment with JSON download link');
           await octokit.rest.issues.createComment({
             owner,
             repo,
             issue_number,
-            body: summary,
+            body: finalSummary,
           });
           core.info('Successfully created new impact analysis comment');
         }
+        
       } catch (error) {
         core.error(`Failed to post/update comment: ${error.message}`);
       }
