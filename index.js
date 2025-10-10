@@ -964,6 +964,7 @@ const run = async () => {
         
         try {
           core.info(`Creating downloadable JSON file: ${fileName}`);
+          core.info(`JSON data size: ${comprehensiveJsonData.length} characters`);
           
           // Create a gist with the JSON data
           const { data: gistResponse } = await octokit.rest.gists.create({
@@ -979,18 +980,52 @@ const run = async () => {
           // Get the raw download URL
           downloadUrl = gistResponse.files[fileName].raw_url;
           core.info(`Successfully created downloadable JSON file: ${downloadUrl}`);
+          core.info(`Gist ID: ${gistResponse.id}`);
           
         } catch (gistError) {
-          core.warning(`Failed to create downloadable JSON file: ${gistError.message}`);
-          // Continue without the download link
+          core.error(`Failed to create downloadable JSON file: ${gistError.message}`);
+          if (gistError.response) {
+            core.error(`Gist API response status: ${gistError.response.status}`);
+            core.error(`Gist API response data: ${JSON.stringify(gistError.response.data)}`);
+          }
+          core.error(`Gist error stack: ${gistError.stack}`);
+          
+          // Try alternative approach: create a comment with the JSON data as a code block
+          core.info("Attempting fallback: embedding JSON data in comment");
+          try {
+            const jsonPreview = comprehensiveJsonData.length > 1000 
+              ? comprehensiveJsonData.substring(0, 1000) + "\n... (truncated - see full data below)"
+              : comprehensiveJsonData;
+            
+            finalSummary += "\n### 📎 Complete Impact Analysis Data\n";
+            finalSummary += "**JSON Data (Download by copying the code block below):**\n\n";
+            finalSummary += "```json\n";
+            finalSummary += comprehensiveJsonData;
+            finalSummary += "\n```\n\n";
+            finalSummary += "*This JSON contains all impact analysis data regardless of display preferences.*\n";
+            
+            downloadUrl = "embedded_in_comment"; // Flag to indicate we have the data
+            core.info("Successfully embedded JSON data in comment as fallback");
+          } catch (fallbackError) {
+            core.error(`Fallback also failed: ${fallbackError.message}`);
+          }
         }
         
         // Add download link to summary if available
         let finalSummary = summary;
-        if (downloadUrl) {
+        if (downloadUrl && downloadUrl !== "embedded_in_comment") {
+          core.info(`Adding download link to comment: ${downloadUrl}`);
           finalSummary += "\n### 📎 Complete Impact Analysis Data\n";
           finalSummary += `[📄 Download Complete Impact Analysis Data (${fileName})](${downloadUrl})\n\n`;
           finalSummary += "*This JSON file contains all impact analysis data regardless of display preferences.*\n";
+        } else if (downloadUrl === "embedded_in_comment") {
+          core.info("JSON data embedded in comment as fallback");
+          // finalSummary already contains the JSON data from the fallback
+        } else {
+          core.warning("No download URL available - Gist creation likely failed");
+          // Add a fallback message
+          finalSummary += "\n### 📎 Complete Impact Analysis Data\n";
+          finalSummary += "*JSON download unavailable - check workflow logs for details*\n";
         }
         
         // Create or update comment with the download link
