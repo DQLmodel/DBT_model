@@ -35,7 +35,9 @@ const parseConfigurableKeys = (keysString) => {
       showDirectColumnList: true,
       showIndirectColumnList: true,
       showDirectAssetList: true,
-      showIndirectAssetList: true
+      showIndirectAssetList: true,
+      showSqlColumnChanges: true,
+      showYmlColumnChanges: true
     };
   }
 
@@ -49,7 +51,9 @@ const parseConfigurableKeys = (keysString) => {
     showDirectColumnList: keys.includes('direct_column_list'),
     showIndirectColumnList: keys.includes('indirect_column_list'),
     showDirectAssetList: keys.includes('direct_asset_list'),
-    showIndirectAssetList: keys.includes('indirect_asset_list')
+    showIndirectAssetList: keys.includes('indirect_asset_list'),
+    showSqlColumnChanges: keys.includes('sql_column_changes'),
+    showYmlColumnChanges: keys.includes('yml_column_changes')
   };
 };
 
@@ -799,14 +803,18 @@ const run = async () => {
     // Build the new simplified report
     summary = buildNewAnalysisReport(fileImpacts, columnImpacts, changedFiles);
     
-    // Add SQL and YML Column Changes sections (always show)
-    summary += "### SQL Column Changes\n";
-    summary += `Added columns(${sqlAdded.length}): ${sqlAdded.join(', ')}\n`;
-    summary += `Removed columns(${sqlRemoved.length}): ${sqlRemoved.join(', ')}\n\n`;
+    // Add SQL and YML Column Changes sections (conditional)
+    if (configurableKeys.showSqlColumnChanges) {
+      summary += "### SQL Column Changes\n";
+      summary += `Added columns(${sqlAdded.length}): ${sqlAdded.join(', ')}\n`;
+      summary += `Removed columns(${sqlRemoved.length}): ${sqlRemoved.join(', ')}\n\n`;
+    }
     
-    summary += "### YML Column Changes\n";
-    summary += `Added columns(${ymlAdded.length}): ${ymlAdded.map(c => c.name).join(', ')}\n`;
-    summary += `Removed columns(${ymlRemoved.length}): ${ymlRemoved.map(c => c.name).join(', ')}\n\n`;
+    if (configurableKeys.showYmlColumnChanges) {
+      summary += "### YML Column Changes\n";
+      summary += `Added columns(${ymlAdded.length}): ${ymlAdded.map(c => c.name).join(', ')}\n`;
+      summary += `Removed columns(${ymlRemoved.length}): ${ymlRemoved.map(c => c.name).join(', ')}\n\n`;
+    }
 
 
     // Post or update comment
