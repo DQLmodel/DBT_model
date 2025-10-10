@@ -35,9 +35,7 @@ const parseConfigurableKeys = (keysString) => {
       showDirectColumnList: true,
       showIndirectColumnList: true,
       showDirectAssetList: true,
-      showIndirectAssetList: true,
-      showSqlColumnChanges: true,
-      showYmlColumnChanges: true
+      showIndirectAssetList: true
     };
   }
 
@@ -51,9 +49,7 @@ const parseConfigurableKeys = (keysString) => {
     showDirectColumnList: keys.includes('direct_column_list'),
     showIndirectColumnList: keys.includes('indirect_column_list'),
     showDirectAssetList: keys.includes('direct_asset_list'),
-    showIndirectAssetList: keys.includes('indirect_asset_list'),
-    showSqlColumnChanges: keys.includes('sql_column_changes'),
-    showYmlColumnChanges: keys.includes('yml_column_changes')
+    showIndirectAssetList: keys.includes('indirect_asset_list')
   };
 };
 
@@ -734,104 +730,8 @@ const run = async () => {
         report += "\n";
       }
       
-    return report;
-  };
-
-  // Generate JSON file with complete impact analysis data
-  const generateImpactAnalysisJSON = (fileImpacts, columnImpacts, changedFiles, sqlAdded, sqlRemoved, ymlAdded, ymlRemoved) => {
-    const jsonData = {
-      timestamp: new Date().toISOString(),
-      commit_sha: github.context.sha,
-      pull_request_number: github.context.payload.pull_request?.number || null,
-      changed_files: changedFiles,
-      asset_impacts: {
-        direct: [],
-        indirect: []
-      },
-      column_impacts: {
-        direct: [],
-        indirect: []
-      },
-      sql_column_changes: {
-        added: sqlAdded,
-        removed: sqlRemoved
-      },
-      yml_column_changes: {
-        added: ymlAdded.map(c => c.name),
-        removed: ymlRemoved.map(c => c.name)
-      },
-      summary: {
-        total_direct_assets: 0,
-        total_indirect_assets: 0,
-        total_direct_columns: 0,
-        total_indirect_columns: 0,
-        total_sql_added: sqlAdded.length,
-        total_sql_removed: sqlRemoved.length,
-        total_yml_added: ymlAdded.length,
-        total_yml_removed: ymlRemoved.length
-      }
+      return report;
     };
-
-    // Process file impacts
-    Object.entries(fileImpacts).forEach(([filePath, impacts]) => {
-      impacts.direct.forEach(model => {
-        jsonData.asset_impacts.direct.push({
-          file_path: filePath,
-          model_name: model.name,
-          connection_id: model.connection_id,
-          redirect_id: model.redirect_id,
-          task_name: impacts.taskName
-        });
-      });
-
-      impacts.indirect.forEach(model => {
-        jsonData.asset_impacts.indirect.push({
-          file_path: filePath,
-          model_name: model.name,
-          connection_id: model.connection_id,
-          redirect_id: model.redirect_id,
-          task_name: impacts.taskName
-        });
-      });
-    });
-
-    // Process column impacts
-    Object.entries(columnImpacts).forEach(([filePath, impacts]) => {
-      impacts.direct.forEach(column => {
-        jsonData.column_impacts.direct.push({
-          file_path: filePath,
-          table_name: column.table_name,
-          column_name: column.column_name,
-          data_type: column.data_type,
-          impact_type: column.impact_type,
-          connection_id: column.connection_id,
-          redirect_id: column.redirect_id,
-          task_name: impacts.taskName
-        });
-      });
-
-      impacts.indirect.forEach(column => {
-        jsonData.column_impacts.indirect.push({
-          file_path: filePath,
-          table_name: column.table_name,
-          column_name: column.column_name,
-          data_type: column.data_type,
-          impact_type: column.impact_type,
-          connection_id: column.connection_id,
-          redirect_id: column.redirect_id,
-          task_name: impacts.taskName
-        });
-      });
-    });
-
-    // Calculate summary totals
-    jsonData.summary.total_direct_assets = jsonData.asset_impacts.direct.length;
-    jsonData.summary.total_indirect_assets = jsonData.asset_impacts.indirect.length;
-    jsonData.summary.total_direct_columns = jsonData.column_impacts.direct.length;
-    jsonData.summary.total_indirect_columns = jsonData.column_impacts.indirect.length;
-
-    return JSON.stringify(jsonData, null, 2);
-  };
 
 
     // Process column changes function
@@ -899,25 +799,14 @@ const run = async () => {
     // Build the new simplified report
     summary = buildNewAnalysisReport(fileImpacts, columnImpacts, changedFiles);
     
-    // Add SQL and YML Column Changes sections (conditional)
-    if (configurableKeys.showSqlColumnChanges) {
-      summary += "### SQL Column Changes\n";
-      summary += `Added columns(${sqlAdded.length}): ${sqlAdded.join(', ')}\n`;
-      summary += `Removed columns(${sqlRemoved.length}): ${sqlRemoved.join(', ')}\n\n`;
-    }
+    // Add SQL and YML Column Changes sections (always show)
+    summary += "### SQL Column Changes\n";
+    summary += `Added columns(${sqlAdded.length}): ${sqlAdded.join(', ')}\n`;
+    summary += `Removed columns(${sqlRemoved.length}): ${sqlRemoved.join(', ')}\n\n`;
     
-    if (configurableKeys.showYmlColumnChanges) {
-      summary += "### YML Column Changes\n";
-      summary += `Added columns(${ymlAdded.length}): ${ymlAdded.map(c => c.name).join(', ')}\n`;
-      summary += `Removed columns(${ymlRemoved.length}): ${ymlRemoved.map(c => c.name).join(', ')}\n\n`;
-    }
-
-    // Generate JSON file with complete impact analysis data
-    const jsonData = generateImpactAnalysisJSON(fileImpacts, columnImpacts, changedFiles, sqlAdded, sqlRemoved, ymlAdded, ymlRemoved);
-    
-    // Add download link for JSON file to the report
-    summary += "### 📎 Complete Impact Analysis Data\n";
-    summary += "Complete impact analysis data in JSON format will be available as a downloadable file below.\n\n";
+    summary += "### YML Column Changes\n";
+    summary += `Added columns(${ymlAdded.length}): ${ymlAdded.map(c => c.name).join(', ')}\n`;
+    summary += `Removed columns(${ymlRemoved.length}): ${ymlRemoved.map(c => c.name).join(', ')}\n\n`;
 
 
     // Post or update comment
@@ -941,78 +830,26 @@ const run = async () => {
           comment.body.includes('## Impact Analysis Report')
         );
         
-        // Create a downloadable JSON file using GitHub's file upload API
-        const fileName = `impact-analysis-${github.context.sha.substring(0, 8)}.json`;
-        core.info(`Creating downloadable JSON file: ${fileName}`);
-        
-        try {
-          // Create a temporary file for the JSON data
-          const fs = require('fs');
-          const path = require('path');
-          const tempDir = process.env.RUNNER_TEMP || '/tmp';
-          const tempFilePath = path.join(tempDir, fileName);
-          
-          // Write JSON data to temporary file
-          fs.writeFileSync(tempFilePath, jsonData);
-          
-          // Create a gist with the JSON file for download
-          const { data: gistResponse } = await octokit.rest.gists.create({
-            description: `Impact Analysis Data - Commit ${github.context.sha.substring(0, 8)}`,
-            public: false,
-            files: {
-              [fileName]: {
-                content: jsonData
-              }
-            }
+        if (existingComment) {
+          // Update existing comment
+          core.info(`Updating existing comment ${existingComment.id}`);
+          await octokit.rest.issues.updateComment({
+            owner,
+            repo,
+            comment_id: existingComment.id,
+            body: summary,
           });
-          
-          // Get the raw download URL
-          const downloadUrl = gistResponse.files[fileName].raw_url;
-          
-          // Add the download link to the summary
-          const finalSummary = summary + `[📄 Download Complete Impact Analysis Data (${fileName})](${downloadUrl})\n\n`;
-          
-          // Create or update comment with the download link
-          if (existingComment) {
-            core.info(`Updating existing comment ${existingComment.id} with JSON download link`);
-            await octokit.rest.issues.updateComment({
-              owner,
-              repo,
-              comment_id: existingComment.id,
-              body: finalSummary,
-            });
-            core.info('Successfully updated existing impact analysis comment');
-          } else {
-            core.info('Creating new impact analysis comment with JSON download link');
-            await octokit.rest.issues.createComment({
-              owner,
-              repo,
-              issue_number,
-              body: finalSummary,
-            });
-            core.info('Successfully created new impact analysis comment');
-          }
-          
-          core.info(`Successfully created downloadable JSON file: ${downloadUrl}`);
-          
-        } catch (error) {
-          core.warning(`Failed to create downloadable JSON file: ${error.message}`);
-          // Fallback: just create/update the comment without JSON download link
-          if (existingComment) {
-            await octokit.rest.issues.updateComment({
-              owner,
-              repo,
-              comment_id: existingComment.id,
-              body: summary,
-            });
-          } else {
-            await octokit.rest.issues.createComment({
-              owner,
-              repo,
-              issue_number,
-              body: summary,
-            });
-          }
+          core.info('Successfully updated existing impact analysis comment');
+        } else {
+          // Create new comment
+          core.info('Creating new impact analysis comment');
+          await octokit.rest.issues.createComment({
+            owner,
+            repo,
+            issue_number,
+            body: summary,
+          });
+          core.info('Successfully created new impact analysis comment');
         }
       } catch (error) {
         core.error(`Failed to post/update comment: ${error.message}`);
