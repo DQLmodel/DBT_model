@@ -55,8 +55,6 @@ deduplicated_data AS (
 SELECT
   "DATE",
   CATEGORY,
-  TOTAL_AMOUNT,
-  REGION,
-  Report
+  TOTAL_AMOUNT
 FROM deduplicated_data
 WHERE rn = 1 
