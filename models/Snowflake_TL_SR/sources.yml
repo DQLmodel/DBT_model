@@ -38,7 +38,7 @@ sources:
             description: "Sales representative"
             tests:
               - not_null
-          - name: REGION
+          - name: REGIONN
             description: "Sales region"
             tests:
               - not_null
