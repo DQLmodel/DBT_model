@@ -57,7 +57,6 @@ SELECT
   CATEGORY,
   TOTAL_AMOUNT,
   REGION,
-  Report,
-  ID
+  Report
 FROM deduplicated_data
 WHERE rn = 1 
