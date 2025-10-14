@@ -56,6 +56,7 @@ SELECT
   "DATE",
   CATEGORY,
   TOTAL_AMOUNT,
-  REGION
+  REGION,
+  Report
 FROM deduplicated_data
 WHERE rn = 1 
