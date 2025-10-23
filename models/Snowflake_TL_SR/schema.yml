@@ -64,3 +64,5 @@ models:
         description: "Name of the customer"
       - name: SALE_DATE
         description: "Date of sale"
+      - name: SALE_AMOUNT
+        description: "Total sales amount"
