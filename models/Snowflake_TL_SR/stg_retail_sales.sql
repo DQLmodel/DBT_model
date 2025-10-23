@@ -62,6 +62,6 @@ SELECT
     TOTAL_AMOUNT,
     CUSTOMER_ID,
     SALES_REP,
-    REGION,
+    REGION
 FROM deduplicated_data
 WHERE rn = 1  
