@@ -19,7 +19,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
- 
+      
       - name: Fetch dqlabs_configurable_keys from base branch (3847)
         id: config
         run: |
@@ -36,15 +36,25 @@ jobs:
           
           if [ -z "$WORKFLOW_CONTENT" ]; then
             echo "Warning: Could not fetch workflow from base branch, using default"
-            echo "dqlabs_configurable_keys=indirect_asset_count, direct_asset_list, indirect_asset_list, direct_column_count, sql_column_changes, yml_column_changes" >> $GITHUB_OUTPUT
+            echo "dqlabs_configurable_keys=indirect_asset_count,direct_asset_list,indirect_asset_list,direct_column_count,sql_column_changes,yml_column_changes" >> $GITHUB_OUTPUT
           else
             echo "Workflow file fetched successfully"
             # Extract dqlabs_configurable_keys from the workflow file
-            DQLABS_KEYS=$(echo "$WORKFLOW_CONTENT" | grep "dqlabs_configurable_keys:" | sed 's/.*dqlabs_configurable_keys: *"\([^"]*\)".*/\1/' | tr -d ' ')
+            DQLABS_KEYS=$(echo "$WORKFLOW_CONTENT" | grep "dqlabs_configurable_keys:" | sed 's/.*dqlabs_configurable_keys: *"\([^"]*\)".*/\1/' | tr -d ' ' | tr -d '\n' | tr -d '\r')
+            
+            # Validate and clean the keys
+            if [ -z "$DQLABS_KEYS" ]; then
+              echo "Warning: Could not extract keys from workflow, using default"
+              DQLABS_KEYS="indirect_asset_count,direct_asset_list,indirect_asset_list,direct_column_count,sql_column_changes,yml_column_changes"
+            fi
+            
+            # Ensure proper formatting for GitHub Actions output
+            DQLABS_KEYS=$(echo "$DQLABS_KEYS" | sed 's/[^a-zA-Z0-9_,]//g')
+            
             echo "dqlabs_configurable_keys=$DQLABS_KEYS" >> $GITHUB_OUTPUT
             echo "Using keys from 3847 branch: $DQLABS_KEYS"
           fi
- 
+      
       - name: Get changed DBT files
         id: changes
         uses: tj-actions/changed-files@v46
@@ -66,10 +76,15 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           dqlabs_base_url: ${{ secrets.DQLABS_BASE_URL }}
           dqlabs_createlink_url: ${{ secrets.DQLABS_CREATELINK_URL }}
-          dqlabs_configurable_keys: "indirect_asset_count, direct_asset_list, direct_column_count,indirect_column_count, Sql_Column_Changes"
+          dqlabs_configurable_keys: ${{ steps.config.outputs.dqlabs_configurable_keys }}
 
       - name: Show Summary in Logs
         run: echo "${{ steps.impact-analysis.outputs.impact_markdown }}"
+      
+      - name: Debug configuration keys
+        run: |
+          echo "Using dqlabs_configurable_keys from 3847 branch:"
+          echo "${{ steps.config.outputs.dqlabs_configurable_keys }}"
 
       - name: Debug changed files
         run: |
