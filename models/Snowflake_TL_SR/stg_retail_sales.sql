@@ -55,7 +55,6 @@ deduplicated_data AS (
 SELECT
   "DATE",
   CATEGORY,
-  TOTAL_AMOUNT,
   SALES_REP
 FROM deduplicated_data
 WHERE rn = 1 
