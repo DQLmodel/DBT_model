@@ -19,6 +19,32 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+ 
+      - name: Fetch dqlabs_configurable_keys from base branch (3847)
+        id: config
+        run: |
+          # Get the base branch name (3847)
+          BASE_BRANCH="3847"
+          
+          # Fetch the impact_analysis.yml file from the base branch
+          WORKFLOW_URL="https://raw.githubusercontent.com/${{ github.repository }}/${BASE_BRANCH}/.github/workflows/impact_analysis.yml"
+          
+          echo "Fetching workflow configuration from: $WORKFLOW_URL"
+          
+          # Download the workflow file
+          WORKFLOW_CONTENT=$(curl -s "$WORKFLOW_URL" || echo "")
+          
+          if [ -z "$WORKFLOW_CONTENT" ]; then
+            echo "Warning: Could not fetch workflow from base branch, using default"
+            echo "dqlabs_configurable_keys=indirect_asset_count, direct_asset_list, indirect_asset_list, direct_column_count, sql_column_changes, yml_column_changes" >> $GITHUB_OUTPUT
+          else
+            echo "Workflow file fetched successfully"
+            # Extract dqlabs_configurable_keys from the workflow file
+            DQLABS_KEYS=$(echo "$WORKFLOW_CONTENT" | grep "dqlabs_configurable_keys:" | sed 's/.*dqlabs_configurable_keys: *"\([^"]*\)".*/\1/' | tr -d ' ')
+            echo "dqlabs_configurable_keys=$DQLABS_KEYS" >> $GITHUB_OUTPUT
+            echo "Using keys from 3847 branch: $DQLABS_KEYS"
+          fi
+ 
       - name: Get changed DBT files
         id: changes
         uses: tj-actions/changed-files@v46
