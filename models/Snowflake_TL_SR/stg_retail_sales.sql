@@ -56,7 +56,7 @@ SELECT
   "DATE",
   CATEGORY,
   QUANTITY,
-  SALES_REP,
+  SALES_REP,,
   REGION
 FROM deduplicated_data
 WHERE rn = 1 
