@@ -57,7 +57,6 @@ SELECT
   CATEGORY,
   TOTAL_AMOUNT,
   QUANTITY,
-  SALES_REP,
-  REGION
+  SALES_REP
 FROM deduplicated_data
 WHERE rn = 1 
