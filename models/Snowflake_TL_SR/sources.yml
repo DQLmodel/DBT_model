@@ -9,6 +9,11 @@ sources:
       - name: retail_sales
         description: "Raw retail sales data from staging"
         columns:
+          - name: RECORD_ID
+            description: "Unique record identifier"
+            tests:
+              - unique
+              - not_null
           - name: "DATE"
             description: "Date of the sale"
             tests:
