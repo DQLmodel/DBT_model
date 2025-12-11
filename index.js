@@ -42,7 +42,7 @@ const parseConfigurableKeys = (keysString) => {
   }
 
   const keys = keysString.split(',').map(key => key.trim().toLowerCase());
-  
+
   return {
     showDirectColumnCount: keys.includes('direct_column_count'),
     showIndirectColumnCount: keys.includes('indirect_column_count'),
@@ -160,7 +160,7 @@ const getImpactAnalysisData = async (asset_id, connection_id, entity, isDirect =
 const getColumnLevelImpactAnalysis = async (asset_id, connection_id, entity, changedColumns, isDirect = true) => {
   try {
     core.info(`[getColumnLevelImpactAnalysis] Starting analysis for entity: ${entity}, changedColumns: [${changedColumns.join(', ')}]`);
-    
+
     const impactAnalysisUrl = `${dqlabs_base_url}/api/lineage/impact-analysis/`;
     const payload = {
       connection_id,
@@ -196,30 +196,30 @@ const getColumnLevelImpactAnalysis = async (asset_id, connection_id, entity, cha
     // Extract column-level information from the response
     const tables = safeArray(response?.data?.response?.data?.tables || []);
     core.info(`[getColumnLevelImpactAnalysis] Found ${tables.length} tables in response`);
-    
+
     const columnImpacts = [];
 
     tables.forEach((table, tableIndex) => {
       const fields = safeArray(table.fields || []);
       core.info(`[getColumnLevelImpactAnalysis] Table ${tableIndex + 1}: ${table.name} has ${fields.length} fields`);
-      
+
       fields.forEach((field, fieldIndex) => {
         // Enhanced column matching with multiple strategies
         const isImpacted = changedColumns.some(changedCol => {
           const fieldName = field.name ? field.name.toLowerCase() : '';
           const changedColName = changedCol.toLowerCase();
-          
+
           // Exact match
           if (fieldName === changedColName) return true;
-          
+
           // Partial match (for cases where column names might be slightly different)
           if (fieldName.includes(changedColName) || changedColName.includes(fieldName)) return true;
-          
+
           // Handle quoted column names
           const unquotedFieldName = fieldName.replace(/[`"']/g, '');
           const unquotedChangedCol = changedColName.replace(/[`"']/g, '');
           if (unquotedFieldName === unquotedChangedCol) return true;
-          
+
           return false;
         });
 
@@ -269,7 +269,7 @@ const extractChangedColumns = async (changedFiles) => {
   for (const file of changedFiles.filter(f => f && f.endsWith(".sql"))) {
     try {
       core.info(`[extractChangedColumns] Processing file: ${file}`);
-      
+
       const baseSha = process.env.GITHUB_BASE_SHA || github.context.payload.pull_request?.base?.sha;
       const headSha = process.env.GITHUB_HEAD_SHA || github.context.payload.pull_request?.head?.sha;
 
@@ -277,7 +277,7 @@ const extractChangedColumns = async (changedFiles) => {
 
       const baseContent = baseSha ? await getFileContent(baseSha, file) : null;
       const headContent = await getFileContent(headSha, file);
-      
+
       if (!headContent) {
         core.warning(`[extractChangedColumns] No head content found for ${file}`);
         continue;
@@ -324,7 +324,7 @@ const run = async () => {
     // Extract changed columns for column-level analysis
     const changedColumns = await extractChangedColumns(changedFiles);
     core.info(`[MAIN] Found ${changedColumns.added.length} added columns and ${changedColumns.removed.length} removed columns`);
-    
+
     // Debug: Log all changed columns
     if (changedColumns.added.length > 0) {
       core.info(`[MAIN] Added columns: ${JSON.stringify(changedColumns.added)}`);
@@ -481,7 +481,7 @@ const run = async () => {
 
     // Deduplicate column impacts
     const columnUniqueKey = (item) => `${item?.table_name}-${item?.column_name}-${item?.connection_id}`;
-    
+
     Object.keys(columnImpacts).forEach(filePath => {
       const impacts = columnImpacts[filePath];
       const directKeys = new Set(impacts.direct.map(columnUniqueKey));
@@ -581,7 +581,7 @@ const run = async () => {
           url.pathname = `/observe/pipeline/task/${columnItem.redirect_id}/run`;
           return url.toString();
         }
-        
+
         return "#";
       } catch (error) {
         core.error(`Error constructing column URL for ${columnItem.table_name}.${columnItem.column_name}: ${error.message}`);
@@ -592,7 +592,7 @@ const run = async () => {
     // Build the new simplified report structure
     const buildNewAnalysisReport = (fileImpacts, columnImpacts, changedFiles) => {
       let report = "## Impact Analysis Report\n\n";
-      
+
       // 1. Changed Files section (always show)
       report += "### Changed Files\n";
       if (changedFiles.length > 0) {
@@ -603,18 +603,18 @@ const run = async () => {
         report += "- No files changed\n";
       }
       report += "\n";
-      
+
       // 2. Asset level Impacts section (only if asset keys are requested)
       const hasAssetKeys = configurableKeys.showDirectAssetCount || configurableKeys.showIndirectAssetCount || 
                            configurableKeys.showDirectAssetList || configurableKeys.showIndirectAssetList;
-      
+
       if (hasAssetKeys) {
         report += "### Asset level Impacts\n";
-        
+
         // Calculate totals
         const totalDirectAssets = Object.values(fileImpacts).reduce((sum, impacts) => sum + impacts.direct.length, 0);
         const totalIndirectAssets = Object.values(fileImpacts).reduce((sum, impacts) => sum + impacts.indirect.length, 0);
-        
+
         // Show count keys first
         if (configurableKeys.showDirectAssetCount) {
           report += `- **Total Directly Impacted:** ${totalDirectAssets}\n`;
@@ -622,7 +622,7 @@ const run = async () => {
         if (configurableKeys.showIndirectAssetCount) {
           report += `- **Total Indirectly Impacted:** ${totalIndirectAssets}\n`;
         }
-        
+
         // Show list keys second (as collapsible sections)
         if (configurableKeys.showDirectAssetList) {
           const directAssets = [];
@@ -637,14 +637,14 @@ const run = async () => {
               }
             });
           });
-          
+
           if (directAssets.length > 0) {
             report += `\n<details>\n<summary><b>Directly Impacted Assets (${directAssets.length})</b></summary>\n\n`;
             report += directAssets.join('\n') + '\n';
             report += `</details>\n`;
           }
         }
-        
+
         if (configurableKeys.showIndirectAssetList) {
           const indirectAssets = [];
           Object.entries(fileImpacts).forEach(([filePath, impacts]) => {
@@ -658,28 +658,28 @@ const run = async () => {
               }
             });
           });
-          
+
           if (indirectAssets.length > 0) {
             report += `\n<details>\n<summary><b>Indirectly Impacted Assets (${indirectAssets.length})</b></summary>\n\n`;
             report += indirectAssets.join('\n') + '\n';
             report += `</details>\n`;
           }
         }
-        
+
         report += "\n";
       }
-      
+
       // 3. Column level Impacts section (only if column keys are requested)
       const hasColumnKeys = configurableKeys.showDirectColumnCount || configurableKeys.showIndirectColumnCount || 
                            configurableKeys.showDirectColumnList || configurableKeys.showIndirectColumnList;
-      
+
       if (hasColumnKeys) {
         report += "### Column level Impacts\n";
-        
+
         // Calculate totals
         const totalDirectColumns = Object.values(columnImpacts).reduce((sum, impacts) => sum + impacts.direct.length, 0);
         const totalIndirectColumns = Object.values(columnImpacts).reduce((sum, impacts) => sum + impacts.indirect.length, 0);
-        
+
         // Show count keys first
         if (configurableKeys.showDirectColumnCount) {
           report += `- **Total Directly Impacted Columns:** ${totalDirectColumns}\n`;
@@ -687,7 +687,7 @@ const run = async () => {
         if (configurableKeys.showIndirectColumnCount) {
           report += `- **Total Indirectly Impacted Columns:** ${totalIndirectColumns}\n`;
         }
-        
+
         // Show list keys second (as collapsible sections)
         if (configurableKeys.showDirectColumnList) {
           const directColumns = [];
@@ -702,14 +702,14 @@ const run = async () => {
               }
             });
           });
-          
+
           if (directColumns.length > 0) {
             report += `\n<details>\n<summary><b>Directly Impacted Columns (${directColumns.length})</b></summary>\n\n`;
             report += directColumns.join('\n') + '\n';
             report += `</details>\n`;
           }
         }
-        
+
         if (configurableKeys.showIndirectColumnList) {
           const indirectColumns = [];
           Object.entries(columnImpacts).forEach(([filePath, impacts]) => {
@@ -723,17 +723,17 @@ const run = async () => {
               }
             });
           });
-          
+
           if (indirectColumns.length > 0) {
             report += `\n<details>\n<summary><b>Indirectly Impacted Columns (${indirectColumns.length})</b></summary>\n\n`;
             report += indirectColumns.join('\n') + '\n';
             report += `</details>\n`;
           }
         }
-        
+
         report += "\n";
       }
-      
+
       return report;
     };
 
@@ -799,17 +799,17 @@ const run = async () => {
     // Process SQL and YML column changes first
     const { added: sqlAdded, removed: sqlRemoved } = await processColumnChanges(".sql", extractColumnsFromSQL);
     const { added: ymlAdded, removed: ymlRemoved } = await processColumnChanges(".yml", (content, file) => extractColumnsFromYML(content, file), true);
-    
+
     // Build the new simplified report
     summary = buildNewAnalysisReport(fileImpacts, columnImpacts, changedFiles);
-    
+
     // Add SQL and YML Column Changes sections (conditional)
     if (configurableKeys.showSqlColumnChanges) {
       summary += "### SQL Column Changes\n";
       summary += `Added columns(${sqlAdded.length}): ${sqlAdded.join(', ')}\n`;
       summary += `Removed columns(${sqlRemoved.length}): ${sqlRemoved.join(', ')}\n\n`;
     }
-    
+
     if (configurableKeys.showYmlColumnChanges) {
       summary += "### YML Column Changes\n";
       summary += `Added columns(${ymlAdded.length}): ${ymlAdded.map(c => c.name).join(', ')}\n`;
@@ -913,16 +913,16 @@ const run = async () => {
       jsonData.summary.total_direct_columns = jsonData.column_impacts.direct.length;
       jsonData.summary.total_indirect_columns = jsonData.column_impacts.indirect.length;
 
-      return jsonData;
+      return JSON.stringify(jsonData, null, 2);
     };
 
-    // Generate comprehensive JSON data (as object)
-    const comprehensiveJsonObject = generateComprehensiveJSON(fileImpacts, columnImpacts, changedFiles, sqlAdded, sqlRemoved, ymlAdded, ymlRemoved);
-    // Stringified version for comment display
-    const comprehensiveJsonData = JSON.stringify(comprehensiveJsonObject, null, 2);
+    // Generate comprehensive JSON data
+    const comprehensiveJsonData = generateComprehensiveJSON(fileImpacts, columnImpacts, changedFiles, sqlAdded, sqlRemoved, ymlAdded, ymlRemoved);
+
+
 
     // Send metadata to DQLabs API endpoint
-    const sendMetadataToDQLabs = async (jsonReport) => {
+    const sendMetadataToDQLabs = async (markdownReport) => {
       try {
         if (!dqlabs_base_url) {
           core.warning('[sendMetadataToDQLabs] DQLabs base URL not provided, skipping metadata upload');
@@ -931,9 +931,9 @@ const run = async () => {
 
         const metadataUrl = `http://44.233.244.28:8000/api/channel_action/github_action_metadata/`;
         core.info(`[sendMetadataToDQLabs] Sending metadata to dqlabs: ${metadataUrl}`);
-        
+
         const payload = {
-          markdown_report: jsonReport,
+          markdown_report: markdownReport,
           metadata: {
             timestamp: new Date().toISOString(),
             commit_sha: github.context.sha,
@@ -950,7 +950,9 @@ const run = async () => {
           changed_files: changedFiles,
           configurable_keys: dqlabs_configurable_keys ? dqlabs_configurable_keys.split(',').map(k => k.trim()) : []
         };
-        
+
+        core.info(`[sendMetadataToDQLabs] Sending metadata to: ${metadataUrl}`);
+
         const response = await axios.post(metadataUrl, payload, {
           headers: {
             "Content-Type": "application/json"
@@ -972,8 +974,8 @@ const run = async () => {
       }
     };
 
-    // Send metadata to DQLabs endpoint (JSON report object)
-    await sendMetadataToDQLabs(comprehensiveJsonObject);
+    // Send metadata to DQLabs endpoint (markdown report as JSON)
+    await sendMetadataToDQLabs(summary);
 
     // Post or update comment
     if (github.context.payload.pull_request) {
@@ -981,21 +983,21 @@ const run = async () => {
         const octokit = github.getOctokit(githubToken);
         const { owner, repo } = github.context.repo;
         const issue_number = github.context.payload.pull_request.number;
-        
+
         // Get existing comments to find our bot's comment
         const comments = await octokit.rest.issues.listComments({
           owner,
           repo,
           issue_number,
         });
-        
+
         // Find existing comment from github-actions[bot] with our impact analysis
         const existingComment = comments.data.find(comment => 
           comment.user.type === 'Bot' && 
           comment.user.login === 'github-actions[bot]' &&
           comment.body.includes('## Impact Analysis Report')
         );
-        
+
         // Add JSON data as collapsible section
         let finalSummary = summary;
         finalSummary += "\n### 📎 Complete Impact Analysis Data\n";
@@ -1005,7 +1007,7 @@ const run = async () => {
         finalSummary += "\n```\n\n";
         finalSummary += "*This JSON contains all impact analysis data regardless of display preferences.*\n";
         finalSummary += `</details>\n\n`;
-        
+
         // Create or update comment with the JSON data
         if (existingComment) {
           core.info(`Updating existing comment ${existingComment.id} with JSON data`);
@@ -1026,7 +1028,7 @@ const run = async () => {
           });
           core.info('Successfully created new impact analysis comment');
         }
-        
+
       } catch (error) {
         core.error(`Failed to post/update comment: ${error.message}`);
       }
