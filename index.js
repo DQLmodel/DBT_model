@@ -913,14 +913,16 @@ const run = async () => {
       jsonData.summary.total_direct_columns = jsonData.column_impacts.direct.length;
       jsonData.summary.total_indirect_columns = jsonData.column_impacts.indirect.length;
 
-      return JSON.stringify(jsonData, null, 2);
+      return jsonData;
     };
 
-    // Generate comprehensive JSON data
-    const comprehensiveJsonData = generateComprehensiveJSON(fileImpacts, columnImpacts, changedFiles, sqlAdded, sqlRemoved, ymlAdded, ymlRemoved);
+    // Generate comprehensive JSON data (as object)
+    const comprehensiveJsonObject = generateComprehensiveJSON(fileImpacts, columnImpacts, changedFiles, sqlAdded, sqlRemoved, ymlAdded, ymlRemoved);
+    // Stringified version for comment display
+    const comprehensiveJsonData = JSON.stringify(comprehensiveJsonObject, null, 2);
 
     // Send metadata to DQLabs API endpoint
-    const sendMetadataToDQLabs = async (markdownReport) => {
+    const sendMetadataToDQLabs = async (jsonReport) => {
       try {
         if (!dqlabs_base_url) {
           core.warning('[sendMetadataToDQLabs] DQLabs base URL not provided, skipping metadata upload');
@@ -931,7 +933,7 @@ const run = async () => {
         core.info(`[sendMetadataToDQLabs] Sending metadata to dqlabs: ${metadataUrl}`);
         
         const payload = {
-          markdown_report: markdownReport,
+          markdown_report: jsonReport,
           metadata: {
             timestamp: new Date().toISOString(),
             commit_sha: github.context.sha,
@@ -948,8 +950,6 @@ const run = async () => {
           changed_files: changedFiles,
           configurable_keys: dqlabs_configurable_keys ? dqlabs_configurable_keys.split(',').map(k => k.trim()) : []
         };
-
-        core.info(`[sendMetadataToDQLabs] Sending metadata to: ${metadataUrl}`);
         
         const response = await axios.post(metadataUrl, payload, {
           headers: {
@@ -972,8 +972,8 @@ const run = async () => {
       }
     };
 
-    // Send metadata to DQLabs endpoint (markdown report as JSON)
-    await sendMetadataToDQLabs(summary);
+    // Send metadata to DQLabs endpoint (JSON report object)
+    await sendMetadataToDQLabs(comprehensiveJsonObject);
 
     // Post or update comment
     if (github.context.payload.pull_request) {
