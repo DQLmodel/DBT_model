@@ -922,7 +922,7 @@ const run = async () => {
 
 
     // Send metadata to DQLabs API endpoint
-    const sendMetadataToDQLabs = async (markdownReport) => {
+    const sendMetadataToDQLabs = async (comprehensiveJsonData) => {
       try {
         if (!dqlabs_base_url) {
           core.warning('[sendMetadataToDQLabs] DQLabs base URL not provided, skipping metadata upload');
@@ -933,7 +933,7 @@ const run = async () => {
         core.info(`[sendMetadataToDQLabs] Sending metadata to dqlabs: ${metadataUrl}`);
 
         const payload = {
-          markdown_report: markdownReport,
+          json_data: comprehensiveJsonData,
           metadata: {
             timestamp: new Date().toISOString(),
             commit_sha: github.context.sha,
