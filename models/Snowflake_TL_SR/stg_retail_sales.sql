@@ -54,7 +54,6 @@ deduplicated_data AS (
 
 SELECT
   "DATE",
-  QUANTITY,
   REGION
 FROM deduplicated_data
 WHERE rn = 1 
