@@ -928,6 +928,7 @@ const run = async () => {
         }
 
         const metadataUrl = `http://44.233.244.28:8000/api/channel_action/github_action_metadata/`;
+        core.info(`[sendMetadataToDQLabs] Sending metadata to dqlabs: ${metadataUrl}`);
         
         const payload = {
           markdown_report: markdownReport,
