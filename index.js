@@ -930,7 +930,7 @@ const run = async () => {
           return;
         }
 
-        const metadataUrl = `http://44.233.244.28:8000/api/channel_action/github_action_metadata/`;
+        const metadataUrl = `http://44.233.244.28:8000/api/lineage/github_action_metadata/`;
         core.info(`[sendMetadataToDQLabs] Sending metadata to dqlabs: ${metadataUrl}`);
         
         const payload = {
@@ -956,7 +956,9 @@ const run = async () => {
         
         const response = await axios.post(metadataUrl, payload, {
           headers: {
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            "client-id": "UOR8tBh/ZFxw5S1g3+Lible45TF7sZZm9iuSiPx6W9OAAO7ZY0j9+LIYrEu0usoj",
+            "client-secret": "iT5DK+iP9RxMpg3yWQneussY/QOhFT9iEY73Lz6lJU0HQyAa7RONFpekkNIXFoQnTYho+TLKqbODVSybKgXzhdQ4Kphsl9b/N76TPsBO91A=",
           },
         });
 
