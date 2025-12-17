@@ -50,7 +50,7 @@ inputs:
     required: true
 
   dqlabs_configurable_keys:
-    description: "Comma-separated list of keys to include in the impact analysis report. Available keys: direct_column_count, indirect_column_count, direct_asset_count, indirect_asset_count, direct_column_list, indirect_column_list, direct_asset_list, indirect_asset_list, sql_column_changes, yml_column_changes"
+    description: "Comma-separated list of keys to include in the impact analysis report. Available keys: direct_column_count, indirect_column_count, direct_asset_count, indirect_asset_count, direct_column_list, indirect_column_list, direct_asset_list, indirect_asset_list, sql_columns_added, sql_columns_removed, yml_columns_added, yml_columns_removed"
     required: false
     default: ""
 

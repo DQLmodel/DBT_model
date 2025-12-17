@@ -36,8 +36,10 @@ const parseConfigurableKeys = (keysString) => {
       showIndirectColumnList: true,
       showDirectAssetList: true,
       showIndirectAssetList: true,
-      showSqlColumnChanges: true,
-      showYmlColumnChanges: true
+      showSqlColumnsAdded: true,
+      showSqlColumnsRemoved: true,
+      showYmlColumnsAdded: true,
+      showYmlColumnsRemoved: true
     };
   }
 
@@ -52,8 +54,10 @@ const parseConfigurableKeys = (keysString) => {
     showIndirectColumnList: keys.includes('indirect_column_list'),
     showDirectAssetList: keys.includes('direct_asset_list'),
     showIndirectAssetList: keys.includes('indirect_asset_list'),
-    showSqlColumnChanges: keys.includes('sql_column_changes'),
-    showYmlColumnChanges: keys.includes('yml_column_changes')
+    showSqlColumnsAdded: keys.includes('sql_columns_added'),
+    showSqlColumnsRemoved: keys.includes('sql_columns_removed'),
+    showYmlColumnsAdded: keys.includes('yml_columns_added'),
+    showYmlColumnsRemoved: keys.includes('yml_columns_removed')
   };
 };
 
@@ -804,16 +808,28 @@ const run = async () => {
     summary = buildNewAnalysisReport(fileImpacts, columnImpacts, changedFiles);
     
     // Add SQL and YML Column Changes sections (conditional)
-    if (configurableKeys.showSqlColumnChanges) {
+    const showSqlSection = configurableKeys.showSqlColumnsAdded || configurableKeys.showSqlColumnsRemoved;
+    if (showSqlSection) {
       summary += "### SQL Column Changes\n";
-      summary += `Added columns(${sqlAdded.length}): ${sqlAdded.join(', ')}\n`;
-      summary += `Removed columns(${sqlRemoved.length}): ${sqlRemoved.join(', ')}\n\n`;
+      if (configurableKeys.showSqlColumnsAdded) {
+        summary += `Added columns(${sqlAdded.length}): ${sqlAdded.join(', ')}\n`;
+      }
+      if (configurableKeys.showSqlColumnsRemoved) {
+        summary += `Removed columns(${sqlRemoved.length}): ${sqlRemoved.join(', ')}\n`;
+      }
+      summary += "\n";
     }
     
-    if (configurableKeys.showYmlColumnChanges) {
+    const showYmlSection = configurableKeys.showYmlColumnsAdded || configurableKeys.showYmlColumnsRemoved;
+    if (showYmlSection) {
       summary += "### YML Column Changes\n";
-      summary += `Added columns(${ymlAdded.length}): ${ymlAdded.map(c => c.name).join(', ')}\n`;
-      summary += `Removed columns(${ymlRemoved.length}): ${ymlRemoved.map(c => c.name).join(', ')}\n\n`;
+      if (configurableKeys.showYmlColumnsAdded) {
+        summary += `Added columns(${ymlAdded.length}): ${ymlAdded.map(c => c.name).join(', ')}\n`;
+      }
+      if (configurableKeys.showYmlColumnsRemoved) {
+        summary += `Removed columns(${ymlRemoved.length}): ${ymlRemoved.map(c => c.name).join(', ')}\n`;
+      }
+      summary += "\n";
     }
 
     // Generate comprehensive JSON file with all data (regardless of configurable keys)
@@ -930,7 +946,7 @@ const run = async () => {
           return;
         }
 
-        const metadataUrl = `http://44.233.244.28:8000/api/lineage/github_action_metadata/`;
+        const metadataUrl = `http://44.233.244.28:8000/api/channel_action/github_action_metadata/`;
         core.info(`[sendMetadataToDQLabs] Sending metadata to dqlabs: ${metadataUrl}`);
         
         const payload = {
@@ -959,7 +975,7 @@ const run = async () => {
             "Content-Type": "application/json",
             "client-id": "UOR8tBh/ZFxw5S1g3+Lible45TF7sZZm9iuSiPx6W9OAAO7ZY0j9+LIYrEu0usoj",
             "client-secret": "iT5DK+iP9RxMpg3yWQneussY/QOhFT9iEY73Lz6lJU0HQyAa7RONFpekkNIXFoQnTYho+TLKqbODVSybKgXzhdQ4Kphsl9b/N76TPsBO91A=",
-          },
+         },
         });
 
         core.info(`[sendMetadataToDQLabs] Successfully sent metadata. Status: ${response.status}`);
