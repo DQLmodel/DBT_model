@@ -2,6 +2,7 @@
 
 select
     -- Keys
+    cast("Mandt" as integer)                          as client,
     trim("Matnr")                                     as material_id,
     trim("Vkorg")                                     as sales_org,
     lpad("Vtweg"::varchar, 2, '0')                     as distribution_channel,
