@@ -119,6 +119,154 @@ const getImpactAnalysisData = async (asset_id, connection_id, entity, isDirect =
   }
 };
 
+const getColumnLevelImpactAnalysis = async (asset_id, connection_id, entity, isDirect = true) => {
+  try {
+    const impactAnalysisUrl = `${dqlabs_base_url}/api/lineage/impact-analysis/`;
+    const payload = {
+      connection_id,
+      asset_id,
+      entity,
+      field_offset: 0,
+      field_limit: 100, // Get more fields for column analysis
+      moreOptions: {
+        view_by: "column",
+        ...(!isDirect && { depth: 10 }) // Add depth only for indirect impact
+      },
+      search_key: ""
+    };
+
+    const response = await axios.post(
+      impactAnalysisUrl,
+      payload,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          "client-id": clientId,
+          "client-secret": clientSecret,
+        },
+      }
+    );
+
+    return {
+      tables: safeArray(response?.data?.response?.data?.tables || []),
+      relations: safeArray(response?.data?.response?.data?.relations || [])
+    };
+  } catch (error) {
+    core.error(`[getColumnLevelImpactAnalysis] Error for ${entity}: ${error.message}`);
+    return { tables: [], relations: [] };
+  }
+};
+
+const analyzeColumnChanges = async (changedFiles) => {
+  const columnChanges = {};
+  
+  for (const file of changedFiles.filter(f => f && f.endsWith(".sql"))) {
+    try {
+      const baseSha = process.env.GITHUB_BASE_SHA || github.context.payload.pull_request?.base?.sha;
+      const headSha = process.env.GITHUB_HEAD_SHA || github.context.payload.pull_request?.head?.sha;
+
+      const baseContent = baseSha ? await getFileContent(baseSha, file) : null;
+      const headContent = await getFileContent(headSha, file);
+      if (!headContent) continue;
+
+      const baseCols = safeArray(baseContent ? extractColumnsFromSQL(baseContent, file) : []);
+      const headCols = safeArray(extractColumnsFromSQL(headContent, file));
+
+      // Find added and removed columns
+      const addedCols = headCols.filter(col => !baseCols.includes(col));
+      const removedCols = baseCols.filter(col => !headCols.includes(col));
+
+      if (addedCols.length > 0 || removedCols.length > 0) {
+        const modelName = path.basename(file, path.extname(file));
+        columnChanges[modelName] = {
+          file,
+          added: addedCols,
+          removed: removedCols,
+          allChanged: [...addedCols, ...removedCols]
+        };
+      }
+    } catch (error) {
+      core.error(`Error analyzing column changes for ${file}: ${error.message}`);
+    }
+  }
+  
+  return columnChanges;
+};
+
+const findColumnLevelImpacts = async (columnChanges, matchedTasks) => {
+  const columnImpacts = {};
+  
+  for (const [modelName, changes] of Object.entries(columnChanges)) {
+    const task = matchedTasks.find(t => t.name === modelName);
+    if (!task) continue;
+    
+    columnImpacts[modelName] = {
+      file: changes.file,
+      changedColumns: changes.allChanged,
+      directImpacts: [],
+      indirectImpacts: []
+    };
+    
+    // Get column-level lineage data
+    const directColumnData = await getColumnLevelImpactAnalysis(
+      task.asset_id,
+      task.connection_id,
+      task.entity,
+      true
+    );
+    
+    const indirectColumnData = await getColumnLevelImpactAnalysis(
+      task.asset_id,
+      task.connection_id,
+      task.entity,
+      false
+    );
+    
+    // Find downstream models that use the changed columns
+    const findModelsUsingColumns = (tables, relations, changedCols) => {
+      const impactedModels = [];
+      
+      for (const table of tables) {
+        if (table.name === modelName) continue; // Skip the source model
+        
+        const tableColumns = safeArray(table.fields).map(f => f.name?.toLowerCase());
+        const hasChangedColumns = changedCols.some(changedCol => 
+          tableColumns.includes(changedCol.toLowerCase())
+        );
+        
+        if (hasChangedColumns) {
+          const usedColumns = changedCols.filter(changedCol => 
+            tableColumns.includes(changedCol.toLowerCase())
+          );
+          
+          impactedModels.push({
+            ...table,
+            usedColumns
+          });
+        }
+      }
+      
+      return impactedModels;
+    };
+    
+    // Find direct impacts
+    columnImpacts[modelName].directImpacts = findModelsUsingColumns(
+      directColumnData.tables,
+      directColumnData.relations,
+      changes.allChanged
+    );
+    
+    // Find indirect impacts
+    columnImpacts[modelName].indirectImpacts = findModelsUsingColumns(
+      indirectColumnData.tables,
+      indirectColumnData.relations,
+      changes.allChanged
+    );
+  }
+  
+  return columnImpacts;
+};
+
 const run = async () => {
   try {
     // Initialize summary with basic info
@@ -187,6 +335,55 @@ const run = async () => {
 
       fileImpacts[task.filePath].indirect.push(...indirectImpact);
     }
+
+    // Perform column-level impact analysis
+    const columnChanges = await analyzeColumnChanges(changedFiles);
+    const columnImpacts = await findColumnLevelImpacts(columnChanges, matchedTasks);
+    
+    // Apply smart filtering to remove coordinated changes
+    const applySmartFiltering = (columnImpacts, columnChanges) => {
+      const filteredImpacts = { ...columnImpacts };
+      
+      Object.entries(filteredImpacts).forEach(([modelName, impacts]) => {
+        const { directImpacts, indirectImpacts, changedColumns } = impacts;
+        
+        // Filter direct impacts
+        filteredImpacts[modelName].directImpacts = directImpacts.filter(downstreamModel => {
+          // Check if this downstream model also has changes in the same columns
+          const downstreamModelName = downstreamModel.name;
+          const downstreamChanges = columnChanges[downstreamModelName];
+          
+          if (!downstreamChanges) return true; // Keep if no changes in downstream model
+          
+          // Check if downstream model has changes in the same columns
+          const hasCoordinatedChanges = changedColumns.some(changedCol => 
+            downstreamChanges.allChanged.includes(changedCol)
+          );
+          
+          return !hasCoordinatedChanges; // Remove if coordinated changes exist
+        });
+        
+        // Filter indirect impacts
+        filteredImpacts[modelName].indirectImpacts = indirectImpacts.filter(downstreamModel => {
+          // Check if this downstream model also has changes in the same columns
+          const downstreamModelName = downstreamModel.name;
+          const downstreamChanges = columnChanges[downstreamModelName];
+          
+          if (!downstreamChanges) return true; // Keep if no changes in downstream model
+          
+          // Check if downstream model has changes in the same columns
+          const hasCoordinatedChanges = changedColumns.some(changedCol => 
+            downstreamChanges.allChanged.includes(changedCol)
+          );
+          
+          return !hasCoordinatedChanges; // Remove if coordinated changes exist
+        });
+      });
+      
+      return filteredImpacts;
+    };
+    
+    const smartFilteredColumnImpacts = applySmartFiltering(columnImpacts, columnChanges);
 
     // Create unique key function for comparison
     const uniqueKey = (item) => `${item?.name}-${item?.connection_id}-${item?.asset_name}`;
@@ -281,7 +478,7 @@ const run = async () => {
 
       if (shouldCollapse) {
         return `<details>
-<summary><b>Impact Analysis (${totalImpacts} total impacts - ${Object.keys(fileImpacts).length} files changed) - Click to expand</b></summary>
+<summary><b>Model-Level Impact Analysis (${totalImpacts} total impacts - ${Object.keys(fileImpacts).length} files changed) - Click to expand</b></summary>
 
 ${content}
 </details>`;
@@ -290,17 +487,81 @@ ${content}
       return content;
     };
 
-    // Add impacts to summary
+    // Build column-level impacts section
+    const buildColumnImpactsSection = (columnImpacts) => {
+      let content = '';
+      let totalColumnDirect = 0;
+      let totalColumnIndirect = 0;
+      
+      Object.entries(columnImpacts).forEach(([modelName, impacts]) => {
+        const { directImpacts, indirectImpacts, changedColumns } = impacts;
+        totalColumnDirect += directImpacts.length;
+        totalColumnIndirect += indirectImpacts.length;
+
+        content += `### Model: ${modelName}\n`;
+        content += `**Changed Columns:** ${changedColumns.join(', ')}\n\n`;
+        
+        content += `#### Column-Level Direct Impacts (${directImpacts.length})\n`;
+        directImpacts.forEach(model => {
+          const url = constructItemUrl(model, dqlabs_createlink_url);
+          content += `- [${model?.name || 'Unknown'}](${url}) - Uses columns: ${model.usedColumns?.join(', ') || 'Unknown'}\n`;
+        });
+
+        content += `\n#### Column-Level Indirect Impacts (${indirectImpacts.length})\n`;
+        indirectImpacts.forEach(model => {
+          const url = constructItemUrl(model, dqlabs_createlink_url);
+          content += `- [${model?.name || 'Unknown'}](${url}) - Uses columns: ${model.usedColumns?.join(', ') || 'Unknown'}\n`;
+        });
+
+        content += '\n\n';
+      });
+
+      const totalColumnImpacts = totalColumnDirect + totalColumnIndirect;
+      const shouldCollapse = totalColumnImpacts > 15;
+
+      if (Object.keys(columnImpacts).length === 0) {
+        return '';
+      }
+
+      if (shouldCollapse) {
+        return `<details>
+<summary><b>Column-Level Impact Analysis (${totalColumnImpacts} total impacts - ${Object.keys(columnImpacts).length} models with column changes) - Click to expand</b></summary>
+
+${content}
+</details>`;
+      }
+      
+      return `## Column-Level Impact Analysis\n\n${content}`;
+    };
+
+    // Add model-level impacts to summary
     summary += buildImpactsSection(fileImpacts);
+    
+    // Add column-level impacts to summary (using smart filtered results)
+    const columnImpactsSection = buildColumnImpactsSection(smartFilteredColumnImpacts);
+    if (columnImpactsSection) {
+      summary += `\n${columnImpactsSection}`;
+    }
     
     // Add summary of total impacts
     const totalDirect = Object.values(fileImpacts).reduce((sum, impacts) => sum + impacts.direct.length, 0);
     const totalIndirect = Object.values(fileImpacts).reduce((sum, impacts) => sum + impacts.indirect.length, 0);
     
+    const totalColumnDirect = Object.values(smartFilteredColumnImpacts).reduce((sum, impacts) => sum + impacts.directImpacts.length, 0);
+    const totalColumnIndirect = Object.values(smartFilteredColumnImpacts).reduce((sum, impacts) => sum + impacts.indirectImpacts.length, 0);
+    
     summary += `\n## Summary of Impacts\n`;
+    summary += `### Model-Level Impacts\n`;
     summary += `- **Total Directly Impacted:** ${totalDirect}\n`;
     summary += `- **Total Indirectly Impacted:** ${totalIndirect}\n`;
     summary += `- **Files Changed:** ${Object.keys(fileImpacts).length}\n\n`;
+    
+    if (Object.keys(smartFilteredColumnImpacts).length > 0) {
+      summary += `### Column-Level Impacts (Smart Filtered)\n`;
+      summary += `- **Total Column-Level Direct Impacts:** ${totalColumnDirect}\n`;
+      summary += `- **Total Column-Level Indirect Impacts:** ${totalColumnIndirect}\n`;
+      summary += `- **Models with Column Changes:** ${Object.keys(smartFilteredColumnImpacts).length}\n\n`;
+    }
 
     // Process column changes
     const processColumnChanges = async (extension, extractor, isYml = false) => {
