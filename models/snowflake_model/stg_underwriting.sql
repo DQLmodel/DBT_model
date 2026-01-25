@@ -9,7 +9,7 @@ WITH raw AS (
 )
 
 SELECT 
-"Accountants",
+"Accountantsx",
 "Actuarial Firm",
 "ADDASSURED",
 "Assured",
