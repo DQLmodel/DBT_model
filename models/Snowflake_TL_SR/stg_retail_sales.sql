@@ -57,7 +57,6 @@ SELECT
   UNIT_PRICE,
   "DATE",
   CATEGORY,
-  QUANTITY,
-  REGION
+  QUANTITY
 FROM deduplicated_data
 WHERE rn = 1 
