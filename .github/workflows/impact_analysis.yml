@@ -38,15 +38,6 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           GITHUB_TOKEN: ${{ secrets.TOKEN }}
         run: |
-          if [ -z "$DBT_MCP_BASE_URL" ]; then
-            echo "DBT_MCP_BASE_URL secret is not set (e.g. https://your-dbt-mcp-host)"
-            exit 1
-          fi
-          # localhost is not reachable from GitHub Actions runners - use a deployed URL
-          if echo "$DBT_MCP_BASE_URL" | grep -qE '^https?://localhost(|:[0-9]+)?(/|$)'; then
-            echo "::error::DBT_MCP_BASE_URL is localhost. GitHub Actions cannot reach your machine. Use a publicly reachable URL (e.g. https://your-dbt-mcp.example.com)."
-            exit 1
-          fi
           URL="http://localhost:8017/api/v1/dbt/github/pr-impact-analysis"
           echo "Calling $URL ..."
           CURL_EXIT=0
