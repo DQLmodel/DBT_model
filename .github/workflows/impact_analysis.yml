@@ -38,7 +38,7 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           GITHUB_TOKEN: ${{ secrets.TOKEN }}
         run: |
-          URL="${DBT_MCP_BASE_URL%/}/api/v1/dbt/github/pr-impact-analysis"
+          URL="http://localhost:8017/api/v1/dbt/github/pr-impact-analysis"
           echo "Calling $URL ..."
           CURL_EXIT=0
           RESP=$(curl -s -w "\n%{http_code}" --connect-timeout 15 --max-time 30 -X POST "$URL" \
