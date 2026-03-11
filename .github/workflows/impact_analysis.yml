@@ -30,20 +30,38 @@ jobs:
           include_renamed: true
           separator: ","
 
-      - name: Run DQLabs Impact Analysis
+      - name: Run PR impact analysis via dbt_mcp API
         id: impact-analysis
-        uses: DQLmodel/DBT_model@3847
-        with:
-          api_client_id: ${{ secrets.DQLABS_API_CLIENT_ID }}
-          api_client_secret: ${{ secrets.DQLABS_API_CLIENT_SECRET }}
-          changed_files_list: ${{ steps.changes.outputs.all_changed_files }},${{ steps.changes.outputs.deleted_files }}
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          dqlabs_base_url: ${{ secrets.DQLABS_BASE_URL }}
-          dqlabs_createlink_url: ${{ secrets.DQLABS_CREATELINK_URL }}
-          dqlabs_configurable_keys: "indirect_asset_count, direct_asset_list, direct_column_count, sql_column_changes"
+        env:
+          DBT_MCP_BASE_URL: ${{ secrets.DBT_MCP_BASE_URL }}
+          GITHUB_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ -z "$DBT_MCP_BASE_URL" ]; then
+            echo "DBT_MCP_BASE_URL secret is not set (e.g. https://your-dbt-mcp-host)"
+            exit 1
+          fi
+          URL="${DBT_MCP_BASE_URL%/}/api/v1/dbt/github/pr-impact-analysis"
+          RESP=$(curl -s -w "\n%{http_code}" -X POST "$URL" \
+            -H "Content-Type: application/json" \
+            -d "{\"repo\": \"$GITHUB_REPO\", \"pr_number\": $PR_NUMBER, \"github_token\": \"$GITHUB_TOKEN\"}")
+          HTTP_BODY=$(echo "$RESP" | head -n -1)
+          HTTP_CODE=$(echo "$RESP" | tail -n 1)
+          echo "response<<EOF" >> $GITHUB_OUTPUT
+          echo "$HTTP_BODY" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          echo "http_code=$HTTP_CODE" >> $GITHUB_OUTPUT
+          if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
+            echo "PR comment updated successfully"
+            echo "$HTTP_BODY" | head -c 500
+          else
+            echo "API call failed (HTTP $HTTP_CODE): $HTTP_BODY"
+            exit 1
+          fi
 
       - name: Show Summary in Logs
-        run: echo "${{ steps.impact-analysis.outputs.impact_markdown }}"
+        run: echo "${{ steps.impact-analysis.outputs.response }}"
 
       - name: Debug changed files
         run: |
