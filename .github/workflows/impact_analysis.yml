@@ -40,6 +40,7 @@ jobs:
         run: |
           URL="http://localhost:8017/api/v1/dbt/github/pr-impact-analysis"
           echo "Calling $URL ..."
+          echo "coming_here"
           CURL_EXIT=0
           RESP=$(curl -s -w "\n%{http_code}" --connect-timeout 15 --max-time 30 -X POST "$URL" \
             -H "Content-Type: application/json" \
