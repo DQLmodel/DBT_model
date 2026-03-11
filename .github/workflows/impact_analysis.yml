@@ -38,28 +38,38 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           GITHUB_TOKEN: ${{ secrets.TOKEN }}
         run: |
-          URL="http://localhost:8017/api/v1/dbt/github/pr-impact-analysis"
+          URL="https://your-domain.com/api/v1/dbt/github/pr-impact-analysis"
+
           echo "Calling $URL ..."
+          echo "coming_here"
+          
           CURL_EXIT=0
+          
           RESP=$(curl -s -w "\n%{http_code}" --connect-timeout 15 --max-time 30 -X POST "$URL" \
             -H "Content-Type: application/json" \
             -d "{\"repo\": \"$GITHUB_REPO\", \"pr_number\": $PR_NUMBER, \"github_token\": \"$GITHUB_TOKEN\"}" 2>&1) || CURL_EXIT=$?
+          
           HTTP_BODY=$(echo "$RESP" | head -n -1)
           HTTP_CODE=$(echo "$RESP" | tail -n 1)
+          
           if [ "$CURL_EXIT" -ne 0 ]; then
-            echo "::error::curl failed with exit code $CURL_EXIT (7 = cannot connect to host). Ensure DBT_MCP_BASE_URL is reachable from the internet (not localhost)."
+            echo "::error::curl failed with exit code $CURL_EXIT"
             echo "Response: $RESP"
             exit 1
           fi
+          
           echo "response<<EOF" >> $GITHUB_OUTPUT
           echo "$HTTP_BODY" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
+          
           echo "http_code=$HTTP_CODE" >> $GITHUB_OUTPUT
+          
           if [ -z "$HTTP_CODE" ] || [ "$HTTP_CODE" = "000" ]; then
-            echo "::error::Could not reach dbt_mcp API. Check: 1) DBT_MCP_BASE_URL is a URL reachable from the internet (not localhost). 2) The server is running and allows requests from GitHub."
+            echo "::error::Could not reach API"
             echo "Response: $RESP"
             exit 1
           fi
+          
           if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
             echo "PR comment updated successfully"
             echo "$HTTP_BODY" | head -c 500
