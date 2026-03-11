@@ -38,7 +38,7 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           GITHUB_TOKEN: ${{ secrets.TOKEN }}
         run: |
-          URL="http://localhost:8017/api/v1/dbt/github/pr-impact-analysis"
+          URL="https://5198-14-99-74-6.ngrok-free.app/api/v1/dbt/github/pr-impact-analysis"
 
           echo "Calling $URL ..."
           echo "coming_here"
