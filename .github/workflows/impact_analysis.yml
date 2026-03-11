@@ -33,51 +33,37 @@ jobs:
       - name: Run PR impact analysis via dbt_mcp API
         id: impact-analysis
         env:
-          DBT_MCP_BASE_URL: ${{ secrets.DBT_MCP_BASE_URL }}
           GITHUB_REPO: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           GITHUB_TOKEN: ${{ secrets.TOKEN }}
         run: |
           URL="https://5198-14-99-74-6.ngrok-free.app/api/v1/dbt/github/pr-impact-analysis"
-
-          echo "Calling $URL ..."
-          echo "coming_here"
-          
-          CURL_EXIT=0
-          
-          RESP=$(curl -s -w "\n%{http_code}" --connect-timeout 15 --max-time 30 -X POST "$URL" \
+      
+          echo "Calling API via POST: $URL"
+      
+          PAYLOAD=$(cat <<EOF
+          {
+            "repo": "$GITHUB_REPO",
+            "pr_number": "$PR_NUMBER",
+            "github_token": "$GITHUB_TOKEN"
+          }
+          EOF
+          )
+      
+          echo "Payload:"
+          echo "$PAYLOAD"
+      
+          RESPONSE=$(curl -s -X POST "$URL" \
             -H "Content-Type: application/json" \
-            -d "{\"repo\": \"$GITHUB_REPO\", \"pr_number\": $PR_NUMBER, \"github_token\": \"$GITHUB_TOKEN\"}" 2>&1) || CURL_EXIT=$?
-          
-          HTTP_BODY=$(echo "$RESP" | head -n -1)
-          HTTP_CODE=$(echo "$RESP" | tail -n 1)
-          
-          if [ "$CURL_EXIT" -ne 0 ]; then
-            echo "::error::curl failed with exit code $CURL_EXIT"
-            echo "Response: $RESP"
-            exit 1
-          fi
-          
+            -H "Accept: application/json" \
+            -d "$PAYLOAD")
+      
+          echo "API Response:"
+          echo "$RESPONSE"
+      
           echo "response<<EOF" >> $GITHUB_OUTPUT
-          echo "$HTTP_BODY" >> $GITHUB_OUTPUT
+          echo "$RESPONSE" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
-          
-          echo "http_code=$HTTP_CODE" >> $GITHUB_OUTPUT
-          
-          if [ -z "$HTTP_CODE" ] || [ "$HTTP_CODE" = "000" ]; then
-            echo "::error::Could not reach API"
-            echo "Response: $RESP"
-            exit 1
-          fi
-          
-          if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
-            echo "PR comment updated successfully"
-            echo "$HTTP_BODY" | head -c 500
-          else
-            echo "::error::API returned HTTP $HTTP_CODE"
-            echo "$HTTP_BODY" | head -c 1000
-            exit 1
-          fi
 
       - name: Show Summary in Logs
         run: echo "${{ steps.impact-analysis.outputs.response }}"
