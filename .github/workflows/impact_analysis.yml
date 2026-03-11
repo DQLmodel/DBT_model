@@ -36,7 +36,7 @@ jobs:
           DBT_MCP_BASE_URL: ${{ secrets.DBT_MCP_BASE_URL }}
           GITHUB_REPO: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.TOKEN }}
         run: |
           if [ -z "$DBT_MCP_BASE_URL" ]; then
             echo "DBT_MCP_BASE_URL secret is not set (e.g. https://your-dbt-mcp-host)"
