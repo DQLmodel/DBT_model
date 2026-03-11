@@ -49,11 +49,17 @@ jobs:
           fi
           URL="${DBT_MCP_BASE_URL%/}/api/v1/dbt/github/pr-impact-analysis"
           echo "Calling $URL ..."
+          CURL_EXIT=0
           RESP=$(curl -s -w "\n%{http_code}" --connect-timeout 15 --max-time 30 -X POST "$URL" \
             -H "Content-Type: application/json" \
-            -d "{\"repo\": \"$GITHUB_REPO\", \"pr_number\": $PR_NUMBER, \"github_token\": \"$GITHUB_TOKEN\"}" 2>&1) || true
+            -d "{\"repo\": \"$GITHUB_REPO\", \"pr_number\": $PR_NUMBER, \"github_token\": \"$GITHUB_TOKEN\"}" 2>&1) || CURL_EXIT=$?
           HTTP_BODY=$(echo "$RESP" | head -n -1)
           HTTP_CODE=$(echo "$RESP" | tail -n 1)
+          if [ "$CURL_EXIT" -ne 0 ]; then
+            echo "::error::curl failed with exit code $CURL_EXIT (7 = cannot connect to host). Ensure DBT_MCP_BASE_URL is reachable from the internet (not localhost)."
+            echo "Response: $RESP"
+            exit 1
+          fi
           echo "response<<EOF" >> $GITHUB_OUTPUT
           echo "$HTTP_BODY" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
