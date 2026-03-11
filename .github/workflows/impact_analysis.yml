@@ -36,27 +36,39 @@ jobs:
           DBT_MCP_BASE_URL: ${{ secrets.DBT_MCP_BASE_URL }}
           GITHUB_REPO: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
-          GITHUB_TOKEN: ${{ secrets.TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           if [ -z "$DBT_MCP_BASE_URL" ]; then
             echo "DBT_MCP_BASE_URL secret is not set (e.g. https://your-dbt-mcp-host)"
             exit 1
           fi
+          # localhost is not reachable from GitHub Actions runners - use a deployed URL
+          if echo "$DBT_MCP_BASE_URL" | grep -qE '^https?://localhost(|:[0-9]+)?(/|$)'; then
+            echo "::error::DBT_MCP_BASE_URL is localhost. GitHub Actions cannot reach your machine. Use a publicly reachable URL (e.g. https://your-dbt-mcp.example.com)."
+            exit 1
+          fi
           URL="${DBT_MCP_BASE_URL%/}/api/v1/dbt/github/pr-impact-analysis"
-          RESP=$(curl -s -w "\n%{http_code}" -X POST "$URL" \
+          echo "Calling $URL ..."
+          RESP=$(curl -s -w "\n%{http_code}" --connect-timeout 15 --max-time 30 -X POST "$URL" \
             -H "Content-Type: application/json" \
-            -d "{\"repo\": \"$GITHUB_REPO\", \"pr_number\": $PR_NUMBER, \"github_token\": \"$GITHUB_TOKEN\"}")
+            -d "{\"repo\": \"$GITHUB_REPO\", \"pr_number\": $PR_NUMBER, \"github_token\": \"$GITHUB_TOKEN\"}" 2>&1) || true
           HTTP_BODY=$(echo "$RESP" | head -n -1)
           HTTP_CODE=$(echo "$RESP" | tail -n 1)
           echo "response<<EOF" >> $GITHUB_OUTPUT
           echo "$HTTP_BODY" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
           echo "http_code=$HTTP_CODE" >> $GITHUB_OUTPUT
+          if [ -z "$HTTP_CODE" ] || [ "$HTTP_CODE" = "000" ]; then
+            echo "::error::Could not reach dbt_mcp API. Check: 1) DBT_MCP_BASE_URL is a URL reachable from the internet (not localhost). 2) The server is running and allows requests from GitHub."
+            echo "Response: $RESP"
+            exit 1
+          fi
           if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
             echo "PR comment updated successfully"
             echo "$HTTP_BODY" | head -c 500
           else
-            echo "API call failed (HTTP $HTTP_CODE): $HTTP_BODY"
+            echo "::error::API returned HTTP $HTTP_CODE"
+            echo "$HTTP_BODY" | head -c 1000
             exit 1
           fi
 
