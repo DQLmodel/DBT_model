@@ -14,7 +14,7 @@ with ranked as (
 )
 
 select
-    cliente,
+    clientee,
     material_id,
     sales_org,
     distribution_channel,
