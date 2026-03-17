@@ -55,6 +55,6 @@ deduplicated_data AS (
 SELECT
   "DATE",
   CATEGORY,
-  QUANTITY
+  QUANTITY as quantity_check
 FROM deduplicated_data
 WHERE rn = 1 
