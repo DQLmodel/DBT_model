@@ -36,6 +36,7 @@ jobs:
           GITHUB_REPO: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           GITHUB_TOKEN: ${{ secrets.TOKEN }}
+          CHANGED_FILES: ${{ steps.changes.outputs.all_changed_files }},${{ steps.changes.outputs.deleted_files }}
         run: |
           URL="https://5198-14-99-74-6.ngrok-free.app/api/v1/dbt/github/pr-impact-analysis"
       
@@ -45,7 +46,9 @@ jobs:
           {
             "repo": "$GITHUB_REPO",
             "pr_number": "$PR_NUMBER",
-            "github_token": "$GITHUB_TOKEN"
+            "github_token": "$GITHUB_TOKEN",
+            "dqlabs_configurable_keys": "indirect_asset_count, direct_asset_list, indirect_asset_list, direct_column_count, sql_column_changes",
+            "changed_files_list": "$CHANGED_FILES"
           }
           EOF
           )
