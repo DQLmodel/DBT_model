@@ -59,6 +59,8 @@ jobs:
       
           echo "Payload:"
           echo "$PAYLOAD"
+          echo "prizm_token"
+          echo "$PRIZM_TOKEN"
       
           RESPONSE=$(curl -s -X POST "$URL" \
             -H "Content-Type: application/json" \
