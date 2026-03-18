@@ -36,9 +36,10 @@ jobs:
           GITHUB_REPO: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           GITHUB_TOKEN: ${{ secrets.TOKEN }}
+          CLIENT_LINK_URL: ${{secrets.CLIENT_LINK_URL }}
           CHANGED_FILES: ${{ steps.changes.outputs.all_changed_files }},${{ steps.changes.outputs.deleted_files }}
         run: |
-          URL="https://008a-183-82-105-227.ngrok-free.app/api/v1/dbt/github/pr-impact-analysis"
+          URL="${GITHUB_TOKEN}/api/v1/dbt/github/pr-impact-analysis"
       
           echo "Calling API via POST: $URL"
       
