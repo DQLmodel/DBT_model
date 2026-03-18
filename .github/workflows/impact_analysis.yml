@@ -39,6 +39,7 @@ jobs:
           DBT_MCP_BASE_URL: ${{ secrets.DBT_MCP_BASE_URL }}
           CLIENT_LINK_URL: ${{secrets.CLIENT_LINK_URL }}
           CHANGED_FILES: ${{ steps.changes.outputs.all_changed_files }},${{ steps.changes.outputs.deleted_files }}
+          PRIZM_TOKEN: ${{ secrets.PRISM_TOKEN }}
         run: |
           URL="${DBT_MCP_BASE_URL}/api/v1/dbt/github/pr-impact-analysis"
       
@@ -62,6 +63,7 @@ jobs:
           RESPONSE=$(curl -s -X POST "$URL" \
             -H "Content-Type: application/json" \
             -H "Accept: application/json" \
+            -H "Authorization: Bearer ${PRISM_TOKEN}" \
             -d "$PAYLOAD")
       
           echo "API Response:"
