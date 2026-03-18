@@ -55,7 +55,7 @@ deduplicated_data AS (
 SELECT
   "DATE",
   CATEGORY,
-  QUANTITY,
-  UNIT_PRICE
+  QUANTITY as quanitity_price,
+  TOTAL_AMOUNT
 FROM deduplicated_data
 WHERE rn = 1 
