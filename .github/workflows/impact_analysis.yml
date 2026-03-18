@@ -62,8 +62,14 @@ jobs:
             -d "$PAYLOAD")
       
           echo "API Response:"
+          printf '%s\n' "$RESPONSE"
+          echo "response<<EOF" >> $GITHUB_OUTPUT
+          echo "$RESPONSE" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          printf '%s\n' "$RESPONSE" > "$GITHUB_WORKSPACE/impact_api_response.json"
+
       - name: Show Summary in Logs
-        run: echo "${{ steps.impact-analysis.outputs.response }}"
+        run: cat "$GITHUB_WORKSPACE/impact_api_response.json"
 
       - name: Debug changed files
         run: |
