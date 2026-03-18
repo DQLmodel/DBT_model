@@ -62,12 +62,6 @@ jobs:
             -d "$PAYLOAD")
       
           echo "API Response:"
-          echo "$RESPONSE"
-      
-          echo "response<<EOF" >> $GITHUB_OUTPUT
-          echo "$RESPONSE" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
       - name: Show Summary in Logs
         run: echo "${{ steps.impact-analysis.outputs.response }}"
 
