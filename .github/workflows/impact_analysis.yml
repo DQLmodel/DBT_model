@@ -36,10 +36,11 @@ jobs:
           GITHUB_REPO: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           GITHUB_TOKEN: ${{ secrets.TOKEN }}
+          DBT_MCP_BASE_URL: ${{ secrets.DBT_MCP_BASE_URL }}
           CLIENT_LINK_URL: ${{secrets.CLIENT_LINK_URL }}
           CHANGED_FILES: ${{ steps.changes.outputs.all_changed_files }},${{ steps.changes.outputs.deleted_files }}
         run: |
-          URL="${GITHUB_TOKEN}/api/v1/dbt/github/pr-impact-analysis"
+          URL="${DBT_MCP_BASE_URL}/api/v1/dbt/github/pr-impact-analysis"
       
           echo "Calling API via POST: $URL"
       
