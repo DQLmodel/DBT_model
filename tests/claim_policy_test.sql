@@ -1,5 +1,6 @@
 {{ config(store_failures = true) }}
 select
+    CUSTOMERID as id ,
     count(CLAIMAMOUNT) as total_amount,
     UNIT_CHECK
 from {{ ref('join') }}
