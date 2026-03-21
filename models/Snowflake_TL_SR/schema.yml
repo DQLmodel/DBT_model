@@ -8,8 +8,6 @@ models:
         description: "Date of sale"
       - name: CUSTOMER_NAME
         description: "Name of the customer"
-      - name: SALE_AMOUNT
-        description: "Amount of the sale"
 
   - name: fct_electronics_sales
     description: "Fact table for electronics sales, aggregated by customer and date"

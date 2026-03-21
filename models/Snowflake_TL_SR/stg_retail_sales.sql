@@ -55,7 +55,8 @@ deduplicated_data AS (
 SELECT
   "DATE",
   CATEGORY,
-  QUANTITY,
-  UNIT_PRICE
+  UNIT_PRICE,
+  SALES_REP
+  
 FROM deduplicated_data
 WHERE rn = 1 
