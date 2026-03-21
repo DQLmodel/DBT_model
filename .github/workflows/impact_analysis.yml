@@ -5,6 +5,7 @@ on:
     paths:
       - '**/*.sql'
       - '**/*.yml'
+      - '**/*.csv'
 
 permissions:
   contents: read
