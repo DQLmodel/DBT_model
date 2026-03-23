@@ -58,6 +58,7 @@ jobs:
           if [ -n "$DBT_PROJECT_FILE" ] && [ -f "$DBT_PROJECT_FILE" ]; then
             DBT_PROJECT_CONTENT=$(cat "$DBT_PROJECT_FILE" | sed 's/"/\\"/g')
           fi
+          echo "dbt_project_content" $DBT_PROJECT_CONTENT
       
           PAYLOAD=$(cat <<EOF
           {
