@@ -61,7 +61,7 @@ jobs:
         run: |
           URL="${DBT_MCP_BASE_URL}/api/v1/dbt/github/pr-impact-analysis"
 
-          echo "Calling API via POST: $URL"
+          echo "Calling API via POST123: $URL"
 
           DBT_PROJECT_CONTENT="null"
 
