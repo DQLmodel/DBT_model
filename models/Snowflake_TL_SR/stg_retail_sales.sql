@@ -52,11 +52,7 @@ deduplicated_data AS (
   FROM source_data
 )
 
-SELECT
-  cast ("DATE" as string ) as date_time,
-  CATEGORY as category check,
-  cast(UNIT_PRICE as number),
-  SALES_REP
+SELECT *
   
 FROM deduplicated_data
 where rn > (select max(QUANTITY,300) from deduplicated_data)
