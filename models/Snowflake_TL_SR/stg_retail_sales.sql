@@ -53,10 +53,8 @@ deduplicated_data AS (
 )
 
 SELECT   
-   "DATE",
-  CATEGORY,
-  UNIT_PRICE,
-  cast(SALES_REP as integer ) as sales_count
+  *
   
 FROM deduplicated_data
-WHERE rn = 1 
+where rn > (select max(QUANTITY,100) from deduplicated_data)
+
