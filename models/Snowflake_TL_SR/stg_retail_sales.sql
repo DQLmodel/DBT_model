@@ -52,7 +52,11 @@ deduplicated_data AS (
   FROM source_data
 )
 
-SELECT   *
+SELECT   
+   "DATE",
+  CATEGORY,
+  UNIT_PRICE,
+  cast(SALES_REP as integer ) as sales_rep
   
 FROM deduplicated_data
 WHERE rn = 1 
