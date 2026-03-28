@@ -54,9 +54,4 @@ deduplicated_data AS (
 
 select *
 from deduplicated_data
-{% if is_incremental() %}
-where UPDATED_DATE > (
-    select coalesce(max(UPDATED_DATE), '1900-01-01')
-    from {{ this }}
-)
 
