@@ -53,9 +53,9 @@ deduplicated_data AS (
 )
 
 SELECT
-  "DATE",
-  CATEGORY,
-  UNIT_PRICE,
+  cast ("DATE" as string ) as date_time,
+  CATEGORY as category check,
+  cast(UNIT_PRICE as integer),
   SALES_REP
   
 FROM deduplicated_data
