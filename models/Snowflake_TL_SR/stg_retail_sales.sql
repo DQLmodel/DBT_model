@@ -53,7 +53,7 @@ deduplicated_data AS (
 )
 
 SELECT   
-   "DATE",
+   cast("DATE" as integer) as date_time,
   cast(CATEGORY as string),
   UNIT_PRICE as unit,
   cast(SALES_REP as number ) as sales_count
