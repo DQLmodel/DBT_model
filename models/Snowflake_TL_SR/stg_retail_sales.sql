@@ -52,11 +52,11 @@ deduplicated_data AS (
   FROM source_data
 )
 
-SELECT   
-   cast("DATE" as integer) as date_time,
-  cast(CATEGORY as string),
-  UNIT_PRICE as unit,
-  cast(SALES_REP as number ) as sales_count
-  
-FROM deduplicated_data
-WHERE rn = 1 
+select *
+from deduplicated_data
+{% if is_incremental() %}
+where UPDATED_DATE > (
+    select coalesce(max(UPDATED_DATE), '1900-01-01')
+    from {{ this }}
+)
+
