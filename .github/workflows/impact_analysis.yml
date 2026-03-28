@@ -33,18 +33,50 @@ jobs:
           include_renamed: true
           separator: ","
 
-      - name: Find dbt_project.yml
+      - name: Find nearest dbt_project.yml for changed files
         id: find_dbt_project
         run: |
-          FILE_PATH=$(find . -name "dbt_project.yml" | head -n 1)
+         FILES="${{ steps.changes.outputs.all_changed_files }}"
 
-          if [ -z "$FILE_PATH" ]; then
-            echo "dbt_project.yml not found"
+          NEAREST_PROJECT=""
+          
+          # If no changed files, fallback to root
+          if [ -z "$FILES" ]; then
+            if [ -f "dbt_project.yml" ]; then
+              NEAREST_PROJECT="dbt_project.yml"
+            fi
+          
           else
-            echo "Found dbt_project.yml at: $FILE_PATH"
+            IFS=',' read -ra FILE_ARRAY <<< "$FILES"
+          
+            for file in "${FILE_ARRAY[@]}"; do
+              [ -z "$file" ] && continue
+          
+              DIR=$(dirname "$file")
+          
+              while true; do
+                if [ -f "$DIR/dbt_project.yml" ]; then
+                  NEAREST_PROJECT="$DIR/dbt_project.yml"
+                  break 2
+                fi
+          
+                if [ "$DIR" = "." ]; then
+                  if [ -f "dbt_project.yml" ]; then
+                    NEAREST_PROJECT="dbt_project.yml"
+                  fi
+                  break
+                fi
+          
+                DIR=$(dirname "$DIR")
+              done
+            done
           fi
-
-          echo "dbt_project_path=$FILE_PATH" >> $GITHUB_OUTPUT
+          
+          if [ -n "$NEAREST_PROJECT" ]; then
+            echo "dbt_project_path=$NEAREST_PROJECT" >> $GITHUB_OUTPUT
+          else
+            echo "dbt_project_path=" >> $GITHUB_OUTPUT
+          fi
 
       - name: Run PR impact analysis via dbt_mcp API
         id: impact-analysis
@@ -57,10 +89,10 @@ jobs:
           CHANGED_FILES: ${{ steps.changes.outputs.all_changed_files }},${{ steps.changes.outputs.deleted_files }}
           PRIZM_TOKEN: ${{ secrets.PRIZM_TOKEN }}
           DBT_PROJECT_FILE: ${{ steps.find_dbt_project.outputs.dbt_project_path }}
+          DBT_ENVIRONMENTS: 'DBT Core Connection'
 
         run: |
           URL="${DBT_MCP_BASE_URL}/api/v1/dbt/github/pr-impact-analysis"
-
           echo "Calling API via POST123: $URL"
 
           DBT_PROJECT_CONTENT="null"
@@ -79,6 +111,7 @@ jobs:
             "github_token": "$GITHUB_TOKEN",
             "prizm_configurable_keys": "indirect_asset_count,direct_asset_count,direct_asset_list,indirect_asset_list,direct_column_count,sql_column_changes,indirect_column_list,direct_column_list,total_impacted_models,total_impacted_assets,yml_column_changes",
             "changed_files_list": "$CHANGED_FILES",
+            "dbt_environments": "Prizm_QA_Environment",
             "client_link_url": "$CLIENT_LINK_URL",
             "dbt_project_file_content": $DBT_PROJECT_CONTENT
           }
