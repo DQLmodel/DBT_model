@@ -33,17 +33,11 @@ jobs:
           include_renamed: true
           separator: ","
 
-      - name: Find dbt_project.yml
+       - name: Find dbt_project.yml
         id: find_dbt_project
         run: |
           FILE_PATH=$(find . -name "dbt_project.yml" | head -n 1)
-
-          if [ -z "$FILE_PATH" ]; then
-            echo "dbt_project.yml not found"
-          else
-            echo "Found dbt_project.yml at: $FILE_PATH"
-          fi
-
+          echo "Found dbt_project.yml at: $FILE_PATH"
           echo "dbt_project_path=$FILE_PATH" >> $GITHUB_OUTPUT
 
       - name: Run PR impact analysis via dbt_mcp API
@@ -55,23 +49,20 @@ jobs:
           DBT_MCP_BASE_URL: ${{ secrets.DBT_MCP_BASE_URL }}
           CLIENT_LINK_URL: ${{ secrets.CLIENT_LINK_URL }}
           CHANGED_FILES: ${{ steps.changes.outputs.all_changed_files }},${{ steps.changes.outputs.deleted_files }}
+          
           PRIZM_TOKEN: ${{ secrets.PRIZM_TOKEN }}
           DBT_PROJECT_FILE: ${{ steps.find_dbt_project.outputs.dbt_project_path }}
 
         run: |
           URL="${DBT_MCP_BASE_URL}/api/v1/dbt/github/pr-impact-analysis"
-
-          echo "Calling API via POST123: $URL"
-
-          DBT_PROJECT_CONTENT="null"
-
+      
+          echo "Calling API via POST: $URL"
+          DBT_PROJECT_CONTENT=""
           if [ -n "$DBT_PROJECT_FILE" ] && [ -f "$DBT_PROJECT_FILE" ]; then
-            echo "Reading dbt_project.yml from: $DBT_PROJECT_FILE"
-            DBT_PROJECT_CONTENT=$(jq -Rs . < "$DBT_PROJECT_FILE")
-          else
-            echo "dbt_project.yml not found or path invalid"
+            DBT_PROJECT_CONTENT=$(cat "$DBT_PROJECT_FILE" | sed 's/"/\\"/g')
           fi
-
+          echo "dbt_project_content" $DBT_PROJECT_CONTENT
+      
           PAYLOAD=$(cat <<EOF
           {
             "repo": "$GITHUB_REPO",
@@ -79,8 +70,8 @@ jobs:
             "github_token": "$GITHUB_TOKEN",
             "prizm_configurable_keys": "indirect_asset_count,direct_asset_count,direct_asset_list,indirect_asset_list,direct_column_count,sql_column_changes,indirect_column_list,direct_column_list,total_impacted_models,total_impacted_assets,yml_column_changes",
             "changed_files_list": "$CHANGED_FILES",
-            "client_link_url": "$CLIENT_LINK_URL",
-            "dbt_project_file_content": $DBT_PROJECT_CONTENT
+            "client_link_url": "$CLIENT_LINK_URL"
+            "dbt_project_file_content": "$DBT_PROJECT_CONTENT"
           }
           EOF
           )
