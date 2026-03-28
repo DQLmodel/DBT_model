@@ -52,11 +52,7 @@ deduplicated_data AS (
   FROM source_data
 )
 
-SELECT
-  "DATE",
-  CATEGORY,
-  UNIT_PRICE,
-  SALES_REP
+SELECT   *
   
 FROM deduplicated_data
 WHERE rn = 1 
