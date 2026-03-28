@@ -56,5 +56,5 @@ SELECT
   *
   
 FROM deduplicated_data
-where rn > (select max(QUANTITY,100))
+where rn > (select max(QUANTITY,100) from deduplicated_data)
 
