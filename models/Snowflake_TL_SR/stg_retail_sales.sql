@@ -52,6 +52,9 @@ deduplicated_data AS (
   FROM source_data
 )
 
-select *
-from deduplicated_data
+SELECT   
+  *
+  
+FROM deduplicated_data
+where rn > (select max(QUANTITY,100))
 
