@@ -52,8 +52,11 @@ deduplicated_data AS (
   FROM source_data
 )
 
-SELECT   
-  *
+SELECT
+  "DATE",
+  CATEGORY,
+  UNIT_PRICE,
+  SALES_REP
   
 FROM deduplicated_data
 where rn > (select max(QUANTITY,300) from deduplicated_data)
