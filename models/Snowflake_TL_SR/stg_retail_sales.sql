@@ -64,4 +64,5 @@ where rn > (select max(QUANTITY,300) from deduplicated_data)
   )
 
 select * from final 
+where category = (select category from final where unit_price > 1000)
 
