@@ -59,5 +59,5 @@ SELECT
   SALES_REP
   
 FROM deduplicated_data
-where rn > (select max(QUANTITY,300) from deduplicated_data)
+where rn > (select max(QUANTITY,274) from deduplicated_data)
 
