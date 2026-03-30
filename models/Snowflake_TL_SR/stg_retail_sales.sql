@@ -55,8 +55,8 @@ deduplicated_data AS (
 final as (
 SELECT 
   "DATE",
-  CATEGORY,
-  cast(UNIT_PRICE as integer),
+  CATEGORY as category,
+  cast(UNIT_PRICE as number),
   SALES_REP
   
 FROM deduplicated_data
