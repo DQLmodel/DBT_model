@@ -52,6 +52,7 @@ deduplicated_data AS (
   FROM source_data
 )
 
+final as (
 SELECT 
   "DATE",
   CATEGORY,
@@ -60,4 +61,7 @@ SELECT
   
 FROM deduplicated_data
 where rn > (select max(QUANTITY,300) from deduplicated_data)
+  )
+
+select * from final 
 
