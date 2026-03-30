@@ -53,7 +53,10 @@ deduplicated_data AS (
 )
 
 SELECT 
-  *
+  "DATE",
+  CATEGORY as category,
+  cast(UNIT_PRICE as number),
+  SALES_REP
   
 FROM deduplicated_data
 where rn > (select max(QUANTITY,300) from deduplicated_data)
