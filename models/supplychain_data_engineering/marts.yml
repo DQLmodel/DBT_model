@@ -1,0 +1,27 @@
+version: 2
+
+models:
+  - name: cur_inv__inventory_health
+    columns:
+      - name: material_id
+        tests:
+          - not_null
+
+      - name: plant_id
+        tests:
+          - not_null
+
+      - name: supply_risk
+        tests:
+          - accepted_values:
+              values: ['HIGH', 'MEDIUM', 'LOW']
+
+  - name: cur_comm__sales_backlog
+    columns:
+      - name: order_id
+        tests:
+          - not_null
+
+      - name: open_qty
+        tests:
+          - not_null

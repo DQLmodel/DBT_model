@@ -1,0 +1,26 @@
+version: 2
+
+sources:
+  - name: sap_raw
+    database: PROD_SC_RAW
+    schema: SAP
+    tables:
+      - name: MATERIAL_MASTER
+      - name: MATERIAL_VALUATION
+      - name: PLANT_STOCK
+      - name: BOM_ITEM
+
+  - name: sales_raw
+    database: PROD_SC_RAW
+    schema: SALES
+    tables:
+      - name: ORDER_HEADER
+      - name: ORDER_ITEM
+      - name: CUSTOMER_MASTER
+
+  - name: plan_raw
+    database: PROD_SC_RAW
+    schema: PLAN
+    tables:
+      - name: FORECAST_PLAN
+      - name: SAFETY_STOCK
