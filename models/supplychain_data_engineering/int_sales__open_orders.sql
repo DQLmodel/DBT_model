@@ -1,7 +1,7 @@
 {{ config(materialized='view', schema='INT_SUPPLY', database='PROD_SC_HUB') }}
 
 select
-    oh.order_id,
+    oh.order_id_,
     oh.customer_id,
     c.customer_name,
     c.country as customer_country,
